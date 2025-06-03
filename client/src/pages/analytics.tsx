@@ -98,41 +98,53 @@ export default function Analytics() {
 
   // Process attendance trend data with proper calculations
   const attendanceTrendData = trends.map((trend: any) => {
-    const present = parseInt(trend.present) || 0;
-    const absent = parseInt(trend.absent) || 0;
-    const halfDay = parseInt(trend.halfDay) || 0;
-    const shortLeave = parseInt(trend.shortLeave) || 0;
+    // Safely parse numbers and ensure they're valid
+    const present = Math.max(0, parseInt(trend.present) || 0);
+    const absent = Math.max(0, parseInt(trend.absent) || 0);
+    const halfDay = Math.max(0, parseInt(trend.halfDay) || 0);
+    const shortLeave = Math.max(0, parseInt(trend.shortLeave) || 0);
     
     const totalTeachers = present + absent + halfDay + shortLeave;
     const effectivePresent = present + (halfDay * 0.5) + (shortLeave * 0.75);
-    const attendanceRate = totalTeachers > 0 ? Math.round((effectivePresent / totalTeachers) * 100) : 0;
+    
+    // Ensure attendance rate is never NaN or invalid
+    let attendanceRate = 0;
+    if (totalTeachers > 0 && isFinite(effectivePresent)) {
+      attendanceRate = Math.round((effectivePresent / totalTeachers) * 100);
+      attendanceRate = Math.min(100, Math.max(0, attendanceRate));
+    }
     
     return {
       date: formatDate(new Date(trend.date), 'MMM dd'),
       fullDate: trend.date,
-      attendanceRate: Math.min(100, Math.max(0, attendanceRate)), // Ensure between 0-100
+      attendanceRate: isFinite(attendanceRate) ? attendanceRate : 0,
       present,
       absent,
       halfDay,
       shortLeave,
       total: totalTeachers,
     };
-  }).filter(item => !isNaN(item.attendanceRate) && item.total > 0);
+  }).filter(item => isFinite(item.attendanceRate) && item.total > 0);
 
   // Department statistics with proper attendance rate calculation
-  const departmentChartData = departmentStats.map((dept: any) => ({
-    name: dept.department.length > 12 ? dept.department.substring(0, 12) + '...' : dept.department,
-    fullName: dept.department,
-    attendanceRate: Math.round(dept.attendanceRate),
-    teacherCount: dept.teacherCount,
-  }));
+  const departmentChartData = departmentStats.map((dept: any) => {
+    const rate = parseFloat(dept.attendanceRate) || 0;
+    const validRate = isFinite(rate) ? Math.round(Math.min(100, Math.max(0, rate))) : 0;
+    
+    return {
+      name: dept.department && dept.department.length > 12 ? dept.department.substring(0, 12) + '...' : dept.department || 'Unknown',
+      fullName: dept.department || 'Unknown',
+      attendanceRate: validRate,
+      teacherCount: Math.max(0, parseInt(dept.teacherCount) || 0),
+    };
+  }).filter(item => item.teacherCount > 0);
 
   // Overall attendance distribution
   const totalStats = trends.reduce((acc: any, trend: any) => {
-    acc.present += parseInt(trend.present) || 0;
-    acc.absent += parseInt(trend.absent) || 0;
-    acc.halfDay += parseInt(trend.halfDay) || 0;
-    acc.shortLeave += parseInt(trend.shortLeave) || 0;
+    acc.present += Math.max(0, parseInt(trend.present) || 0);
+    acc.absent += Math.max(0, parseInt(trend.absent) || 0);
+    acc.halfDay += Math.max(0, parseInt(trend.halfDay) || 0);
+    acc.shortLeave += Math.max(0, parseInt(trend.shortLeave) || 0);
     return acc;
   }, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
 
@@ -141,22 +153,22 @@ export default function Analytics() {
     { name: 'Half Day', value: totalStats.halfDay, color: COLORS[2] },
     { name: 'Short Leave', value: totalStats.shortLeave, color: COLORS[1] },
     { name: 'Absent', value: totalStats.absent, color: COLORS[3] },
-  ].filter(item => item.value > 0);
+  ].filter(item => item.value > 0 && isFinite(item.value));
 
   // Absence category analysis
   const absentCategoryData = absentAnalytics ? [
-    { name: 'Official Leave', value: parseInt(absentAnalytics.officialLeave) || 0, color: COLORS[0] },
-    { name: 'Sick Leave', value: parseInt(absentAnalytics.sickLeave) || 0, color: COLORS[2] },
-    { name: 'Private Leave', value: parseInt(absentAnalytics.irregularLeave) || 0, color: COLORS[3] },
-  ].filter(item => item.value > 0) : [];
+    { name: 'Official Leave', value: Math.max(0, parseInt(absentAnalytics.officialLeave) || 0), color: COLORS[0] },
+    { name: 'Sick Leave', value: Math.max(0, parseInt(absentAnalytics.sickLeave) || 0), color: COLORS[2] },
+    { name: 'Private Leave', value: Math.max(0, parseInt(absentAnalytics.irregularLeave) || 0), color: COLORS[3] },
+  ].filter(item => item.value > 0 && isFinite(item.value)) : [];
 
   // Weekly performance data
-  const weeklyData = attendanceTrendData.slice(-7).map((day: any, index: number) => ({
+  const weeklyData = attendanceTrendData.slice(-7).map((day: any) => ({
     day: formatDate(new Date(day.fullDate), 'EEE'),
-    rate: day.attendanceRate,
-    present: day.present,
-    total: day.total,
-  }));
+    rate: isFinite(day.attendanceRate) ? day.attendanceRate : 0,
+    present: Math.max(0, day.present || 0),
+    total: Math.max(0, day.total || 0),
+  })).filter(item => isFinite(item.rate));
 
   const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
 
@@ -238,9 +250,15 @@ export default function Analytics() {
               </div>
               <div className="ml-4">
                 <div className="text-2xl font-bold text-gray-900">
-                  {attendanceTrendData.length > 0 ? 
-                    Math.round(attendanceTrendData.reduce((sum: number, day: any) => sum + day.attendanceRate, 0) / attendanceTrendData.length) 
-                    : 0}%
+                  {(() => {
+                    if (attendanceTrendData.length === 0) return '0%';
+                    const sum = attendanceTrendData.reduce((acc: number, day: any) => {
+                      const rate = isFinite(day.attendanceRate) ? day.attendanceRate : 0;
+                      return acc + rate;
+                    }, 0);
+                    const average = sum / attendanceTrendData.length;
+                    return isFinite(average) ? `${Math.round(average)}%` : '0%';
+                  })()}
                 </div>
                 <div className="text-sm text-gray-600">Average Attendance</div>
               </div>
@@ -284,7 +302,7 @@ export default function Analytics() {
               </div>
               <div className="ml-4">
                 <div className="text-2xl font-bold text-gray-900">
-                  {absentAnalytics ? parseInt(absentAnalytics.totalAbsent) || 0 : 0}
+                  {absentAnalytics ? Math.max(0, parseInt(absentAnalytics.totalAbsent) || 0) : 0}
                 </div>
                 <div className="text-sm text-gray-600">Total Absences</div>
               </div>
@@ -302,13 +320,13 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={attendanceTrendData}>
+              <AreaChart data={attendanceTrendData.filter(d => d && isFinite(d.attendanceRate))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis domain={[70, 100]} />
                 <Tooltip 
                   formatter={(value, name) => [
-                    name === 'attendanceRate' ? `${value}%` : value,
+                    name === 'attendanceRate' ? `${isFinite(value) ? value : 0}%` : (isFinite(value) ? value : 0),
                     name === 'attendanceRate' ? 'Attendance Rate' : name
                   ]}
                   labelFormatter={(label) => `Date: ${label}`}
@@ -333,11 +351,11 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={weeklyData}>
+              <BarChart data={weeklyData.filter(d => d && isFinite(d.rate))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" />
                 <YAxis domain={[0, 100]} />
-                <Tooltip formatter={(value) => [`${value}%`, 'Attendance Rate']} />
+                <Tooltip formatter={(value) => [`${isFinite(value) ? value : 0}%`, 'Attendance Rate']} />
                 <Bar dataKey="rate" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -351,16 +369,16 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={departmentChartData} layout="horizontal">
+              <BarChart data={departmentChartData.filter(d => d && isFinite(d.attendanceRate))} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" domain={[70, 100]} />
                 <YAxis type="category" dataKey="name" width={80} />
                 <Tooltip 
                   formatter={(value, name, props) => [
-                    `${value}%`, 
+                    `${isFinite(Number(value)) ? value : 0}%`, 
                     'Attendance Rate',
-                    `Department: ${props.payload.fullName}`,
-                    `Teachers: ${props.payload.teacherCount}`
+                    `Department: ${props?.payload?.fullName || 'Unknown'}`,
+                    `Teachers: ${props?.payload?.teacherCount || 0}`
                   ]}
                 />
                 <Bar dataKey="attendanceRate" fill={COLORS[2]} radius={[0, 4, 4, 0]} />
