@@ -154,10 +154,12 @@ export class DatabaseStorage implements IStorage {
       teacherId: row.attendance_records.teacherId,
       date: row.attendance_records.date,
       status: row.attendance_records.status,
+      absentCategory: row.attendance_records.absentCategory,
       checkInTime: row.attendance_records.checkInTime,
       notes: row.attendance_records.notes,
       recordedBy: row.attendance_records.recordedBy,
       createdAt: row.attendance_records.createdAt,
+      updatedAt: row.attendance_records.updatedAt,
       teacher: row.teachers
     }));
   }

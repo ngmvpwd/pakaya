@@ -172,10 +172,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/attendance", async (req, res) => {
     try {
       const attendanceData = insertAttendanceSchema.parse(req.body);
-      const record = await storage.createAttendanceRecord(attendanceData);
-      res.json(record);
+      
+      // Check if record already exists for this teacher and date
+      const existingRecord = await storage.getAttendanceRecordByTeacherAndDate(
+        attendanceData.teacherId,
+        attendanceData.date
+      );
+      
+      if (existingRecord) {
+        // Update existing record
+        const updated = await storage.updateAttendanceRecord(existingRecord.id, attendanceData);
+        res.json(updated);
+      } else {
+        // Create new record
+        const record = await storage.createAttendanceRecord(attendanceData);
+        res.json(record);
+      }
     } catch (error) {
-      res.status(400).json({ message: "Invalid attendance data" });
+      console.error('Attendance creation error:', error);
+      res.status(400).json({ message: "Invalid attendance data", error: error.message });
+    }
+  });
+
+  app.put("/api/attendance/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const attendanceData = req.body;
+      const updated = await storage.updateAttendanceRecord(id, attendanceData);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Attendance record not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Attendance update error:', error);
+      res.status(400).json({ message: "Invalid attendance data", error: error.message });
     }
   });
 

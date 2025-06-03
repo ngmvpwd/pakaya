@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { exportAttendanceData } from "@/lib/api";
 import { getAuthState } from "@/lib/auth";
-import { Check, Clock, X, Download, Search } from "lucide-react";
+import { Check, Clock, X, Download, Search, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { Teacher } from "@shared/schema";
 
@@ -18,6 +19,7 @@ interface AttendanceRecord {
   teacherId: number;
   date: string;
   status: 'present' | 'absent' | 'half_day';
+  absentCategory?: 'official_leave' | 'irregular_leave' | 'sick_leave';
   checkInTime?: string;
   teacher: {
     id: number;
@@ -31,6 +33,9 @@ export default function Attendance() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  const [absentDialogOpen, setAbsentDialogOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<number | null>(null);
+  const [selectedAbsentCategory, setSelectedAbsentCategory] = useState<'official_leave' | 'irregular_leave' | 'sick_leave'>('official_leave');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getAuthState().user;
@@ -67,27 +72,36 @@ export default function Attendance() {
   });
 
   const updateAttendanceMutation = useMutation({
-    mutationFn: async ({ teacherId, status }: { teacherId: number; status: string }) => {
+    mutationFn: async ({ teacherId, status, absentCategory }: { 
+      teacherId: number; 
+      status: string;
+      absentCategory?: 'official_leave' | 'irregular_leave' | 'sick_leave';
+    }) => {
       const existingRecord = attendance.find((a: AttendanceRecord) => a.teacherId === teacherId);
       
+      const attendanceData = {
+        status,
+        absentCategory: status === 'absent' ? absentCategory : null,
+        checkInTime: status === 'present' ? format(new Date(), 'HH:mm') : null,
+      };
+      
       if (existingRecord) {
-        return apiRequest('PUT', `/api/attendance/${existingRecord.id}`, {
-          status,
-          checkInTime: status === 'present' ? format(new Date(), 'HH:mm') : null,
-        });
+        return apiRequest('PUT', `/api/attendance/${existingRecord.id}`, attendanceData);
       } else {
         return apiRequest('POST', '/api/attendance', {
           teacherId,
           date: selectedDate,
-          status,
-          checkInTime: status === 'present' ? format(new Date(), 'HH:mm') : null,
           recordedBy: user?.id || 1,
+          ...attendanceData,
         });
       }
     },
     onSuccess: () => {
+      // Real-time update: refetch data immediately
       queryClient.invalidateQueries({ queryKey: ['/api/attendance/date', selectedDate] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats/overview'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats/trends'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/analytics'] });
     },
     onError: (error: any) => {
       toast({
@@ -132,7 +146,7 @@ export default function Attendance() {
     }
   };
 
-  const departments = [...new Set(teachers.map((t: any) => t.department))];
+  const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
   
   const filteredTeachers = teachers.filter((teacher: any) => {
     const matchesSearch = teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
