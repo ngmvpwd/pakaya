@@ -69,11 +69,11 @@ export async function seedDatabase() {
     for (const teacher of insertedTeachers) {
       const random = Math.random();
       let status = 'present';
-      let checkInTime = '09:00';
+      let checkInTime: string | undefined = '09:00';
       
       if (random < 0.05) {
         status = 'absent';
-        checkInTime = null;
+        checkInTime = undefined;
       } else if (random < 0.10) {
         status = 'half_day';
         checkInTime = '13:00';
