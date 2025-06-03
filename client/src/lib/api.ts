@@ -41,5 +41,20 @@ export async function exportAttendanceData(params: {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  } else if (params.format === 'pdf') {
+    // Open the PDF report in a new window for printing
+    const htmlContent = await response.text();
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      
+      // Auto-trigger print dialog after content loads
+      newWindow.onload = () => {
+        setTimeout(() => {
+          newWindow.print();
+        }, 500);
+      };
+    }
   }
 }
