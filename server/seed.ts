@@ -42,8 +42,34 @@ export async function seedDatabase() {
     console.log("Default departments created");
   }
 
-  // Note: Teachers will be added dynamically through the management interface
-  // No pre-populated teacher data
+  // Check if teachers already exist
+  const existingTeachers = await db.select().from(teachers).limit(1);
+  if (existingTeachers.length === 0) {
+    // Insert sample teachers across different departments
+    await db.insert(teachers).values([
+      { teacherId: 'T001', name: 'Sarah Johnson', department: 'Mathematics', email: 'sarah.johnson@school.edu', phone: '555-0101', joinDate: '2020-08-15' },
+      { teacherId: 'T002', name: 'Michael Chen', department: 'Science', email: 'michael.chen@school.edu', phone: '555-0102', joinDate: '2019-09-01' },
+      { teacherId: 'T003', name: 'Emily Rodriguez', department: 'English', email: 'emily.rodriguez@school.edu', phone: '555-0103', joinDate: '2021-01-10' },
+      { teacherId: 'T004', name: 'David Kim', department: 'Mathematics', email: 'david.kim@school.edu', phone: '555-0104', joinDate: '2018-07-20' },
+      { teacherId: 'T005', name: 'Lisa Thompson', department: 'Science', email: 'lisa.thompson@school.edu', phone: '555-0105', joinDate: '2020-03-05' },
+      { teacherId: 'T006', name: 'Robert Wilson', department: 'Social Studies', email: 'robert.wilson@school.edu', phone: '555-0106', joinDate: '2017-08-30' },
+      { teacherId: 'T007', name: 'Maria Garcia', department: 'English', email: 'maria.garcia@school.edu', phone: '555-0107', joinDate: '2019-11-15' },
+      { teacherId: 'T008', name: 'James Davis', department: 'Physical Education', email: 'james.davis@school.edu', phone: '555-0108', joinDate: '2020-06-01' },
+      { teacherId: 'T009', name: 'Jennifer Lee', department: 'Art', email: 'jennifer.lee@school.edu', phone: '555-0109', joinDate: '2021-02-20' },
+      { teacherId: 'T010', name: 'Christopher Brown', department: 'Music', email: 'christopher.brown@school.edu', phone: '555-0110', joinDate: '2018-09-10' },
+      { teacherId: 'T011', name: 'Amanda Taylor', department: 'Computer Science', email: 'amanda.taylor@school.edu', phone: '555-0111', joinDate: '2020-01-15' },
+      { teacherId: 'T012', name: 'Daniel Martinez', department: 'Mathematics', email: 'daniel.martinez@school.edu', phone: '555-0112', joinDate: '2019-04-25' },
+      { teacherId: 'T013', name: 'Jessica White', department: 'Science', email: 'jessica.white@school.edu', phone: '555-0113', joinDate: '2021-08-01' },
+      { teacherId: 'T014', name: 'Kevin Anderson', department: 'Social Studies', email: 'kevin.anderson@school.edu', phone: '555-0114', joinDate: '2018-01-30' },
+      { teacherId: 'T015', name: 'Nicole Miller', department: 'English', email: 'nicole.miller@school.edu', phone: '555-0115', joinDate: '2020-09-12' },
+      { teacherId: 'T016', name: 'Ryan Jackson', department: 'Physical Education', email: 'ryan.jackson@school.edu', phone: '555-0116', joinDate: '2019-05-18' },
+      { teacherId: 'T017', name: 'Stephanie Moore', department: 'Art', email: 'stephanie.moore@school.edu', phone: '555-0117', joinDate: '2021-03-08' },
+      { teacherId: 'T018', name: 'Brandon Harris', department: 'Music', email: 'brandon.harris@school.edu', phone: '555-0118', joinDate: '2017-11-22' },
+      { teacherId: 'T019', name: 'Laura Clark', department: 'Computer Science', email: 'laura.clark@school.edu', phone: '555-0119', joinDate: '2020-04-14' },
+      { teacherId: 'T020', name: 'Andrew Lewis', department: 'Mathematics', email: 'andrew.lewis@school.edu', phone: '555-0120', joinDate: '2018-12-03' }
+    ]);
+    console.log("Sample teachers created");
+  }
 
   console.log("Database ready with default data");
 }

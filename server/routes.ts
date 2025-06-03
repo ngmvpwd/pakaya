@@ -238,21 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/attendance/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updateData = insertAttendanceSchema.partial().parse(req.body);
-      
-      const record = await storage.updateAttendanceRecord(id, updateData);
-      if (!record) {
-        return res.status(404).json({ message: "Attendance record not found" });
-      }
-      
-      res.json(record);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid update data" });
-    }
-  });
+
 
   // Statistics and analytics routes
   app.get("/api/stats/overview", async (req, res) => {
@@ -418,6 +404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
         `;
         
+        const { teacherId } = req.query;
         if (teacherId) {
           const attendance = await storage.getAttendanceByTeacher(
             parseInt(teacherId as string),
