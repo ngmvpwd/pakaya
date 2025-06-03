@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAttendanceSchema, insertTeacherSchema } from "@shared/schema";
+import { insertAttendanceSchema, insertTeacherSchema, insertDepartmentSchema } from "@shared/schema";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -285,8 +285,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         res.send(csvData);
+      } else if (format === 'pdf') {
+        // For PDF, we'll return a simple text format that can be converted to PDF
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', 'attachment; filename="attendance.pdf"');
+        
+        let pdfData = 'ATTENDANCE REPORT\n';
+        pdfData += '===================\n\n';
+        
+        if (teacherId) {
+          const attendance = await storage.getAttendanceByTeacher(
+            parseInt(teacherId as string),
+            startDate as string,
+            endDate as string
+          );
+          const teacher = await storage.getTeacherById(parseInt(teacherId as string));
+          
+          pdfData += `Teacher: ${teacher?.name}\n`;
+          pdfData += `Department: ${teacher?.department}\n\n`;
+          
+          attendance.forEach(record => {
+            pdfData += `Date: ${record.date}\n`;
+            pdfData += `Status: ${record.status}\n`;
+            pdfData += `Check-in: ${record.checkInTime || 'N/A'}\n\n`;
+          });
+        } else {
+          const today = new Date().toISOString().split('T')[0];
+          const targetDate = (endDate as string) || today;
+          const attendance = await storage.getAttendanceByDate(targetDate);
+          
+          pdfData += `Date: ${targetDate}\n\n`;
+          
+          attendance.forEach(record => {
+            pdfData += `Teacher: ${record.teacher.name}\n`;
+            pdfData += `Department: ${record.teacher.department}\n`;
+            pdfData += `Status: ${record.status}\n`;
+            pdfData += `Check-in: ${record.checkInTime || 'N/A'}\n\n`;
+          });
+        }
+        
+        res.send(pdfData);
       } else {
-        res.status(400).json({ message: "Unsupported export format" });
+        res.status(400).json({ message: "Unsupported export format. Use 'csv' or 'pdf'" });
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to export data" });

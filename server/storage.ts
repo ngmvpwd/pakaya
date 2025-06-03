@@ -1,8 +1,8 @@
 import { db } from "./db";
 import { 
-  users, teachers, attendanceRecords, alerts,
-  type User, type Teacher, type AttendanceRecord, type Alert,
-  type InsertUser, type InsertTeacher, type InsertAttendance, type InsertAlert
+  users, departments, teachers, attendanceRecords, alerts,
+  type User, type Department, type Teacher, type AttendanceRecord, type Alert,
+  type InsertUser, type InsertDepartment, type InsertTeacher, type InsertAttendance, type InsertAlert
 } from "@shared/schema";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
 
@@ -10,6 +10,13 @@ export interface IStorage {
   // User methods
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Department methods
+  getAllDepartments(): Promise<Department[]>;
+  getDepartmentById(id: number): Promise<Department | undefined>;
+  createDepartment(department: InsertDepartment): Promise<Department>;
+  updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department | undefined>;
+  deleteDepartment(id: number): Promise<void>;
   
   // Teacher methods
   getAllTeachers(): Promise<Teacher[]>;
@@ -53,6 +60,29 @@ export class DatabaseStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const result = await db.insert(users).values(user).returning();
     return result[0];
+  }
+
+  async getAllDepartments(): Promise<Department[]> {
+    return await db.select().from(departments).orderBy(asc(departments.name));
+  }
+
+  async getDepartmentById(id: number): Promise<Department | undefined> {
+    const result = await db.select().from(departments).where(eq(departments.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createDepartment(department: InsertDepartment): Promise<Department> {
+    const result = await db.insert(departments).values(department).returning();
+    return result[0];
+  }
+
+  async updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department | undefined> {
+    const result = await db.update(departments).set(department).where(eq(departments.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteDepartment(id: number): Promise<void> {
+    await db.delete(departments).where(eq(departments.id, id));
   }
 
   async getAllTeachers(): Promise<Teacher[]> {

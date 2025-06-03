@@ -11,6 +11,13 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
 });
 
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const teachers = pgTable("teachers", {
   id: serial("id").primaryKey(),
   teacherId: text("teacher_id").notNull().unique(),
@@ -46,6 +53,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
 
+export const insertDepartmentSchema = createInsertSchema(departments).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertTeacherSchema = createInsertSchema(teachers).omit({
   id: true,
 }).extend({
@@ -63,11 +75,13 @@ export const insertAlertSchema = createInsertSchema(alerts).omit({
 });
 
 export type User = typeof users.$inferSelect;
+export type Department = typeof departments.$inferSelect;
 export type Teacher = typeof teachers.$inferSelect;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type Alert = typeof alerts.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type InsertTeacher = z.infer<typeof insertTeacherSchema>;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
