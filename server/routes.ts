@@ -219,17 +219,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const results = [];
       for (const record of records) {
-        const attendanceRecord = await storage.createAttendanceRecord({
-          teacherId: record.teacherId,
-          date,
-          status: record.status,
-          checkInTime: record.checkInTime || null,
-          checkOutTime: record.checkOutTime || null,
-          absentCategory: record.absentCategory || null,
-          notes: record.notes || null,
-          recordedBy,
-        });
-        results.push(attendanceRecord);
+        // Check if record already exists for this teacher and date
+        const existingRecord = await storage.getAttendanceRecordByTeacherAndDate(
+          record.teacherId,
+          date
+        );
+        
+        if (existingRecord) {
+          // Update existing record
+          const updated = await storage.updateAttendanceRecord(existingRecord.id, {
+            status: record.status,
+            checkInTime: record.checkInTime || null,
+            checkOutTime: record.checkOutTime || null,
+            absentCategory: record.absentCategory || null,
+            notes: record.notes || null,
+          });
+          results.push(updated);
+        } else {
+          // Create new record
+          const attendanceRecord = await storage.createAttendanceRecord({
+            teacherId: record.teacherId,
+            date,
+            status: record.status,
+            checkInTime: record.checkInTime || null,
+            checkOutTime: record.checkOutTime || null,
+            absentCategory: record.absentCategory || null,
+            notes: record.notes || null,
+            recordedBy,
+          });
+          results.push(attendanceRecord);
+        }
       }
       
       res.json(results);

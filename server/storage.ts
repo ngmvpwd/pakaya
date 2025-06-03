@@ -257,9 +257,11 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    // Calculate attendance rate based on total teachers, not just recorded attendance
-    if (stats.totalTeachers > 0) {
-      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5 + stats.shortLeaveToday * 0.8) / stats.totalTeachers) * 100);
+    // Calculate attendance rate based on effective attendance
+    const totalRecorded = stats.presentToday + stats.absentToday + stats.halfDayToday + stats.shortLeaveToday;
+    if (totalRecorded > 0) {
+      const effectivePresent = stats.presentToday + (stats.halfDayToday * 0.5) + (stats.shortLeaveToday * 0.75);
+      stats.attendanceRate = Math.round((effectivePresent / totalRecorded) * 100);
     }
 
     return stats;

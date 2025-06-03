@@ -67,19 +67,24 @@ export default function Dashboard() {
   };
 
   const chartData = trends?.map((trend: any) => {
-    const totalTeachers = parseInt(trend.present) + parseInt(trend.absent) + parseInt(trend.halfDay) + parseInt(trend.shortLeave);
-    const effectivePresent = parseInt(trend.present) + (parseInt(trend.halfDay) * 0.5) + (parseInt(trend.shortLeave) * 0.75);
+    const present = parseInt(trend.present) || 0;
+    const absent = parseInt(trend.absent) || 0;
+    const halfDay = parseInt(trend.halfDay) || 0;
+    const shortLeave = parseInt(trend.shortLeave) || 0;
+    
+    const totalTeachers = present + absent + halfDay + shortLeave;
+    const effectivePresent = present + (halfDay * 0.5) + (shortLeave * 0.75);
     const attendanceRate = totalTeachers > 0 ? Math.round((effectivePresent / totalTeachers) * 100) : 0;
     
     return {
       date: format(new Date(trend.date), 'MMM dd'),
-      attendance: attendanceRate,
-      present: parseInt(trend.present),
-      absent: parseInt(trend.absent),
-      halfDay: parseInt(trend.halfDay),
-      shortLeave: parseInt(trend.shortLeave),
+      attendance: Math.min(100, Math.max(0, attendanceRate)), // Ensure between 0-100
+      present,
+      absent,
+      halfDay,
+      shortLeave,
     };
-  }) || [];
+  }).filter(item => !isNaN(item.attendance)) || [];
 
   return (
     <div className="space-y-8">
