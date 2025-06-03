@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   LineChart,
   Line,
@@ -22,21 +23,29 @@ import {
 } from "recharts";
 import { exportAttendanceData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Download, Search } from "lucide-react";
-import { format as formatDate, subDays } from "date-fns";
+import { FileText, Download, Search, Calendar, CalendarDays } from "lucide-react";
+import { format as formatDate, subDays, parseISO } from "date-fns";
 
 const COLORS = ['hsl(var(--primary))', '#10B981', '#F59E0B', '#EF4444'];
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');
+  const [customDateRange, setCustomDateRange] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const { toast } = useToast();
 
   const { data: trends } = useQuery({
-    queryKey: ['/api/stats/trends', dateRange],
-    queryFn: () => fetch(`/api/stats/trends?days=${dateRange}`).then(res => res.json()),
+    queryKey: ['/api/stats/trends', dateRange, customDateRange, startDate, endDate],
+    queryFn: () => {
+      if (customDateRange && startDate && endDate) {
+        return fetch(`/api/stats/trends?startDate=${startDate}&endDate=${endDate}`).then(res => res.json());
+      }
+      return fetch(`/api/stats/trends?days=${dateRange}`).then(res => res.json());
+    },
   });
 
   const { data: departmentStats = [] } = useQuery<any[]>({

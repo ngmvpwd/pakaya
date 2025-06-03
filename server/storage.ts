@@ -39,6 +39,7 @@ export interface IStorage {
     attendanceRate: number;
   }>;
   getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>>;
+  getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>>;
   getDepartmentStats(): Promise<Array<{ department: string; attendanceRate: number; teacherCount: number }>>;
   
   // Alert methods
@@ -229,9 +230,9 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    const totalRecorded = stats.presentToday + stats.absentToday + stats.halfDayToday;
-    if (totalRecorded > 0) {
-      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5) / totalRecorded) * 100 * 10) / 10;
+    // Calculate attendance rate based on total teachers, not just recorded attendance
+    if (stats.totalTeachers > 0) {
+      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5) / stats.totalTeachers) * 100 * 10) / 10;
     }
 
     return stats;
@@ -250,6 +251,42 @@ export class DatabaseStorage implements IStorage {
       })
       .from(attendanceRecords)
       .where(sql`${attendanceRecords.date} >= ${startDateStr}`)
+      .groupBy(attendanceRecords.date, attendanceRecords.status)
+      .orderBy(asc(attendanceRecords.date));
+
+    const trendsMap = new Map<string, { present: number; absent: number; halfDay: number }>();
+    
+    result.forEach(row => {
+      if (!trendsMap.has(row.date)) {
+        trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0 });
+      }
+      const trend = trendsMap.get(row.date)!;
+      
+      switch (row.status) {
+        case 'present':
+          trend.present = row.count;
+          break;
+        case 'absent':
+          trend.absent = row.count;
+          break;
+        case 'half_day':
+          trend.halfDay = row.count;
+          break;
+      }
+    });
+
+    return Array.from(trendsMap.entries()).map(([date, stats]) => ({ date, ...stats }));
+  }
+
+  async getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>> {
+    const result = await db
+      .select({
+        date: attendanceRecords.date,
+        status: attendanceRecords.status,
+        count: sql<number>`count(*)`
+      })
+      .from(attendanceRecords)
+      .where(sql`${attendanceRecords.date} >= ${startDate} AND ${attendanceRecords.date} <= ${endDate}`)
       .groupBy(attendanceRecords.date, attendanceRecords.status)
       .orderBy(asc(attendanceRecords.date));
 

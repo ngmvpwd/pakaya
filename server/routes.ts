@@ -234,9 +234,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/stats/trends", async (req, res) => {
     try {
-      const days = parseInt(req.query.days as string) || 7;
-      const trends = await storage.getAttendanceTrends(days);
-      res.json(trends);
+      const { days, startDate, endDate } = req.query;
+      
+      if (startDate && endDate) {
+        // Custom date range
+        const trends = await storage.getAttendanceTrendsCustomRange(
+          startDate as string,
+          endDate as string
+        );
+        res.json(trends);
+      } else {
+        // Default days-based range
+        const daysNumber = parseInt(days as string) || 7;
+        const trends = await storage.getAttendanceTrends(daysNumber);
+        res.json(trends);
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch trends" });
     }
