@@ -176,7 +176,7 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
                   </div>
                 ))}
               </div>
-            </Card>
+            </CardContent>
           </Card>
 
           {/* Additional Teacher Info */}
