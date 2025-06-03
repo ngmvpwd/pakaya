@@ -79,11 +79,15 @@ export default function Attendance() {
     }) => {
       const existingRecord = attendance.find((a: AttendanceRecord) => a.teacherId === teacherId);
       
-      const attendanceData = {
+      const attendanceData: any = {
         status,
-        absentCategory: status === 'absent' ? absentCategory : null,
         checkInTime: status === 'present' ? format(new Date(), 'HH:mm') : null,
       };
+      
+      // Only include absentCategory when status is absent
+      if (status === 'absent' && absentCategory) {
+        attendanceData.absentCategory = absentCategory;
+      }
       
       if (existingRecord) {
         return apiRequest('PUT', `/api/attendance/${existingRecord.id}`, attendanceData);

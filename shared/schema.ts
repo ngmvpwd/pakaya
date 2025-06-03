@@ -70,16 +70,18 @@ export const insertAttendanceSchema = createInsertSchema(attendanceRecords).omit
   id: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  absentCategory: z.enum(['official_leave', 'irregular_leave', 'sick_leave']).optional(),
 }).refine((data) => {
   // If status is 'absent', absentCategory is required
   if (data.status === 'absent' && !data.absentCategory) {
     return false;
   }
+  // If status is not 'absent', absentCategory should be null or undefined
+  if (data.status !== 'absent' && data.absentCategory) {
+    return false;
+  }
   return true;
 }, {
-  message: "Absent category is required when status is absent",
+  message: "Absent category is required when status is absent, and should not be provided for other statuses",
   path: ["absentCategory"]
 });
 
