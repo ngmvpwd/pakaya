@@ -1,4 +1,4 @@
-import { db, initializeDatabase } from "./database";
+import { db } from "./db";
 import { 
   users, teachers, attendanceRecords, alerts,
   type User, type Teacher, type AttendanceRecord, type Alert,
@@ -42,11 +42,7 @@ export interface IStorage {
   getTopPerformingTeachers(limit: number): Promise<Array<{ teacher: Teacher; attendanceRate: number }>>;
 }
 
-export class SqliteStorage implements IStorage {
-  constructor() {
-    initializeDatabase();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
     return result[0];
@@ -78,25 +74,22 @@ export class SqliteStorage implements IStorage {
 
   async getAttendanceByDate(date: string): Promise<(AttendanceRecord & { teacher: Teacher })[]> {
     const result = await db
-      .select({
-        id: attendanceRecords.id,
-        teacherId: attendanceRecords.teacherId,
-        date: attendanceRecords.date,
-        status: attendanceRecords.status,
-        checkInTime: attendanceRecords.checkInTime,
-        notes: attendanceRecords.notes,
-        recordedBy: attendanceRecords.recordedBy,
-        createdAt: attendanceRecords.createdAt,
-        teacher: teachers,
-      })
+      .select()
       .from(attendanceRecords)
       .innerJoin(teachers, eq(attendanceRecords.teacherId, teachers.id))
       .where(eq(attendanceRecords.date, date))
       .orderBy(asc(teachers.name));
 
     return result.map(row => ({
-      ...row,
-      teacher: row.teacher
+      id: row.attendance_records.id,
+      teacherId: row.attendance_records.teacherId,
+      date: row.attendance_records.date,
+      status: row.attendance_records.status,
+      checkInTime: row.attendance_records.checkInTime,
+      notes: row.attendance_records.notes,
+      recordedBy: row.attendance_records.recordedBy,
+      createdAt: row.attendance_records.createdAt,
+      teacher: row.teachers
     }));
   }
 
@@ -273,7 +266,7 @@ export class SqliteStorage implements IStorage {
   }
 
   async markAlertAsRead(id: number): Promise<void> {
-    await db.update(alerts).set({ isRead: 1 }).where(eq(alerts.id, id));
+    await db.update(alerts).set({ isRead: true }).where(eq(alerts.id, id));
   }
 
   async getTeacherAttendancePattern(teacherId: number, weeks: number): Promise<Array<{ week: string; rate: number }>> {
@@ -350,4 +343,4 @@ export class SqliteStorage implements IStorage {
   }
 }
 
-export const storage = new SqliteStorage();
+export const storage = new DatabaseStorage();
