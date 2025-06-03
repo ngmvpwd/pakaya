@@ -190,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const record = await storage.createAttendanceRecord(attendanceData);
         res.json(record);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Attendance creation error:', error);
       res.status(400).json({ message: "Invalid attendance data", error: error.message });
     }
@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Attendance update error:', error);
       res.status(400).json({ message: "Invalid attendance data", error: error.message });
     }
@@ -404,8 +404,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </div>
         `;
         
-        const { teacherId } = req.query;
-        if (teacherId) {
+        if (req.query.teacherId) {
+          const teacherId = req.query.teacherId;
           const attendance = await storage.getAttendanceByTeacher(
             parseInt(teacherId as string),
             startDate as string,
