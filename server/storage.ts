@@ -243,16 +243,16 @@ export class DatabaseStorage implements IStorage {
     todayStats.forEach(stat => {
       switch (stat.status) {
         case 'present':
-          stats.presentToday = stat.count;
+          stats.presentToday = Number(stat.count);
           break;
         case 'absent':
-          stats.absentToday = stat.count;
+          stats.absentToday = Number(stat.count);
           break;
         case 'half_day':
-          stats.halfDayToday = stat.count;
+          stats.halfDayToday = Number(stat.count);
           break;
         case 'short_leave':
-          stats.shortLeaveToday = stat.count;
+          stats.shortLeaveToday = Number(stat.count);
           break;
       }
     });
@@ -260,7 +260,8 @@ export class DatabaseStorage implements IStorage {
     // Calculate attendance rate based on total teachers, not just recorded attendance
     if (stats.totalTeachers > 0) {
       const effectivePresent = stats.presentToday + (stats.halfDayToday * 0.5) + (stats.shortLeaveToday * 0.75);
-      stats.attendanceRate = Math.round((effectivePresent / stats.totalTeachers) * 100);
+      const rate = (effectivePresent / stats.totalTeachers) * 100;
+      stats.attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
     }
 
     return stats;
@@ -370,13 +371,25 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${attendanceRecords.date} >= ${startDate}`)
       .groupBy(teachers.department);
 
-    return result.map(row => ({
-      department: row.department,
-      teacherCount: row.teacherCount,
-      attendanceRate: row.totalRecords > 0 
-        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100)
-        : 0
-    }));
+    return result.map(row => {
+      const totalRecords = Number(row.totalRecords) || 0;
+      const presentRecords = Number(row.presentRecords) || 0;
+      const halfDayRecords = Number(row.halfDayRecords) || 0;
+      const shortLeaveRecords = Number(row.shortLeaveRecords) || 0;
+      
+      let attendanceRate = 0;
+      if (totalRecords > 0) {
+        const effectivePresent = presentRecords + (halfDayRecords * 0.5) + (shortLeaveRecords * 0.8);
+        const rate = (effectivePresent / totalRecords) * 100;
+        attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
+      }
+      
+      return {
+        department: row.department,
+        teacherCount: Number(row.teacherCount) || 0,
+        attendanceRate
+      };
+    });
   }
 
   async getTeacherAbsenceTotals(teacherId: number, startDate?: string, endDate?: string): Promise<{
@@ -473,9 +486,17 @@ export class DatabaseStorage implements IStorage {
 
       const [attendanceStats] = await query;
       
-      const attendanceRate = attendanceStats && attendanceStats.totalRecords > 0 
-        ? Math.round(((attendanceStats.presentRecords + attendanceStats.halfDayRecords * 0.5 + attendanceStats.shortLeaveRecords * 0.8) / attendanceStats.totalRecords) * 100)
-        : 0;
+      let attendanceRate = 0;
+      if (attendanceStats && attendanceStats.totalRecords > 0) {
+        const totalRecords = Number(attendanceStats.totalRecords) || 0;
+        const presentRecords = Number(attendanceStats.presentRecords) || 0;
+        const halfDayRecords = Number(attendanceStats.halfDayRecords) || 0;
+        const shortLeaveRecords = Number(attendanceStats.shortLeaveRecords) || 0;
+        
+        const effectivePresent = presentRecords + (halfDayRecords * 0.5) + (shortLeaveRecords * 0.8);
+        const rate = (effectivePresent / totalRecords) * 100;
+        attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
+      }
 
       exportData.push({
         teacherId: teacher.teacherId,
@@ -554,10 +575,17 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    return Array.from(weeklyStats.entries()).map(([week, stats]) => ({
-      week,
-      rate: stats.total > 0 ? Math.round((stats.present / stats.total) * 100 * 10) / 10 : 0
-    }));
+    return Array.from(weeklyStats.entries()).map(([week, stats]) => {
+      let rate = 0;
+      if (stats.total > 0) {
+        const percentage = (stats.present / stats.total) * 100;
+        rate = Math.min(100, Math.max(0, Math.round(percentage * 10) / 10));
+      }
+      return {
+        week,
+        rate
+      };
+    });
   }
 
   async getTopPerformingTeachers(limit: number): Promise<Array<{ teacher: Teacher; attendanceRate: number }>> {
@@ -581,12 +609,24 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`((sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end) + sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end) * 0.5 + sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end) * 0.8) / count(${attendanceRecords.id})) DESC`)
       .limit(limit);
 
-    return result.map(row => ({
-      teacher: row.teacher,
-      attendanceRate: row.totalRecords > 0 
-        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100)
-        : 0
-    }));
+    return result.map(row => {
+      const totalRecords = Number(row.totalRecords) || 0;
+      const presentRecords = Number(row.presentRecords) || 0;
+      const halfDayRecords = Number(row.halfDayRecords) || 0;
+      const shortLeaveRecords = Number(row.shortLeaveRecords) || 0;
+      
+      let attendanceRate = 0;
+      if (totalRecords > 0) {
+        const effectivePresent = presentRecords + (halfDayRecords * 0.5) + (shortLeaveRecords * 0.8);
+        const rate = (effectivePresent / totalRecords) * 100;
+        attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
+      }
+      
+      return {
+        teacher: row.teacher,
+        attendanceRate
+      };
+    });
   }
 
   async getAbsentAnalytics(startDate?: string, endDate?: string): Promise<{
