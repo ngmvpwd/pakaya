@@ -348,6 +348,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/analytics/teacher/:teacherId/absence-totals", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const { startDate, endDate } = req.query;
+      
+      const totals = await storage.getTeacherAbsenceTotals(teacherId, startDate as string, endDate as string);
+      res.json(totals);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch teacher absence totals" });
+    }
+  });
+
   // Alerts routes
   app.get("/api/alerts", async (req, res) => {
     try {

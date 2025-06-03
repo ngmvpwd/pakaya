@@ -32,11 +32,25 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
 
   const { data: teacherAttendance } = useQuery({
     queryKey: ['/api/attendance/teacher', teacher?.id],
+    queryFn: () => fetch(`/api/attendance/teacher/${teacher?.id}`).then(res => res.json()),
     enabled: !!teacher && isOpen,
   });
 
   const { data: attendancePattern } = useQuery({
     queryKey: ['/api/stats/teacher', teacher?.id, 'pattern'],
+    queryFn: () => fetch(`/api/stats/teacher/${teacher?.id}/pattern?weeks=8`).then(res => res.json()),
+    enabled: !!teacher && isOpen,
+  });
+
+  const { data: absenceTotals } = useQuery({
+    queryKey: ['/api/analytics/teacher', teacher?.id, 'absence-totals'],
+    queryFn: () => fetch(`/api/analytics/teacher/${teacher?.id}/absence-totals`).then(res => res.json()),
+    enabled: !!teacher && isOpen,
+  });
+
+  const { data: absentPattern } = useQuery({
+    queryKey: ['/api/analytics/teacher', teacher?.id, 'absent-pattern'],
+    queryFn: () => fetch(`/api/analytics/teacher/${teacher?.id}/absent-pattern`).then(res => res.json()),
     enabled: !!teacher && isOpen,
   });
 
@@ -84,10 +98,19 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string, date?: string) => {
+    if (status === 'absent' && absentPattern) {
+      const absentRecord = absentPattern.find((p: any) => p.date === date);
+      if (absentRecord?.category) {
+        const categoryLabel = absentRecord.category.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+        return `Absent (${categoryLabel})`;
+      }
+    }
+    
     switch (status) {
       case 'present': return 'Present';
       case 'half_day': return 'Half Day';
+      case 'short_leave': return 'Short Leave';
       case 'absent': return 'Absent';
       default: return 'No Data';
     }
@@ -139,6 +162,33 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
             </Card>
           </div>
 
+          {/* Absence Categories */}
+          {absenceTotals && absenceTotals.totalAbsences > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Absence Breakdown</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-orange-50 p-3 rounded">
+                    <div className="text-lg font-bold text-orange-600">{absenceTotals.officialLeave}</div>
+                    <div className="text-sm text-orange-700">Official Leave</div>
+                  </div>
+                  <div className="bg-purple-50 p-3 rounded">
+                    <div className="text-lg font-bold text-purple-600">{absenceTotals.privateLeave}</div>
+                    <div className="text-sm text-purple-700">Private Leave</div>
+                  </div>
+                  <div className="bg-pink-50 p-3 rounded">
+                    <div className="text-lg font-bold text-pink-600">{absenceTotals.sickLeave}</div>
+                    <div className="text-sm text-pink-700">Sick Leave</div>
+                  </div>
+                  <div className="bg-indigo-50 p-3 rounded">
+                    <div className="text-lg font-bold text-indigo-600">{absenceTotals.shortLeave}</div>
+                    <div className="text-sm text-indigo-700">Short Leave</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Attendance Chart */}
           {attendancePattern && attendancePattern.length > 0 && (
             <Card>
@@ -168,13 +218,18 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Recent Attendance (Last 10 Working Days)</h3>
               <div className="grid grid-cols-5 gap-2">
-                {last10Days.map((day, index) => (
-                  <div key={index} className="text-center p-2 rounded border">
-                    <div className="text-xs text-gray-600 mb-1">{day.date}</div>
-                    <div className={`w-6 h-6 mx-auto rounded-full ${getStatusColor(day.status)}`}></div>
-                    <div className="text-xs text-gray-600 mt-1">{getStatusLabel(day.status)}</div>
-                  </div>
-                ))}
+                {last10Days.map((day, index) => {
+                  const fullDate = format(subDays(new Date(), 9 - index), 'yyyy-MM-dd');
+                  return (
+                    <div key={index} className="text-center p-2 rounded border">
+                      <div className="text-xs text-gray-600 mb-1">{day.date}</div>
+                      <div className={`w-6 h-6 mx-auto rounded-full ${getStatusColor(day.status)}`}></div>
+                      <div className="text-xs text-gray-600 mt-1 leading-tight">
+                        {getStatusLabel(day.status, fullDate)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
