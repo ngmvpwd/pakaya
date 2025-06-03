@@ -22,12 +22,12 @@ interface NavigationItem {
 
 const getNavigationItems = (userRole: string): NavigationItem[] => {
   const baseItems: NavigationItem[] = [
+    { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { href: "/attendance", label: "Mark Attendance", icon: ClipboardCheck },
   ];
 
   if (userRole === 'admin') {
     return [
-      { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
       ...baseItems,
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/teachers", label: "Teacher Profiles", icon: Users },

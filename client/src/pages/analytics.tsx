@@ -155,13 +155,15 @@ export default function Analytics() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Teacher</label>
               <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Teachers" />
+                  <SelectValue placeholder="Search or select a teacher..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Teachers</SelectItem>
-                  {filteredTeachers.map((teacher: any) => (
+                  {teachers
+                    .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                    .map((teacher: any) => (
                     <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                      {teacher.name}
+                      {teacher.name} ({teacher.teacherId}) - {teacher.department}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -248,45 +250,74 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* Top Performers */}
+        {/* Department Distribution Pie Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Performing Teachers</CardTitle>
+            <CardTitle>Teachers by Department</CardTitle>
           </CardHeader>
           <CardContent>
-            {topPerformers && topPerformers.length > 0 ? (
-              <div className="space-y-4">
-                {topPerformers.map((performer: any, index: number) => (
-                  <div key={performer.teacher.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                        index === 0 ? 'bg-yellow-500' : 
-                        index === 1 ? 'bg-gray-400' : 
-                        index === 2 ? 'bg-amber-600' : 'bg-blue-500'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{performer.teacher.name}</div>
-                        <div className="text-sm text-gray-600">{performer.teacher.department}</div>
-                      </div>
-                    </div>
-                    <Badge className={
-                      performer.attendanceRate >= 95 ? "bg-green-100 text-green-800" :
-                      performer.attendanceRate >= 90 ? "bg-blue-100 text-blue-800" :
-                      "bg-gray-100 text-gray-800"
-                    }>
-                      {performer.attendanceRate}%
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">No data available</p>
-            )}
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={departmentPieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {departmentPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value} teachers`, 'Count']} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
+
+      {/* Top Performers Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Performing Teachers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {topPerformers && topPerformers.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {topPerformers.map((performer: any, index: number) => (
+                <div key={performer.teacher.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                      index === 0 ? 'bg-yellow-500' : 
+                      index === 1 ? 'bg-gray-400' : 
+                      index === 2 ? 'bg-amber-600' : 'bg-blue-500'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">{performer.teacher.name}</div>
+                      <div className="text-sm text-gray-600">{performer.teacher.department}</div>
+                    </div>
+                  </div>
+                  <Badge className={
+                    performer.attendanceRate >= 95 ? "bg-green-100 text-green-800" :
+                    performer.attendanceRate >= 90 ? "bg-blue-100 text-blue-800" :
+                    "bg-gray-100 text-gray-800"
+                  }>
+                    {performer.attendanceRate}%
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No attendance data available for analysis</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Export Section */}
       <Card>
