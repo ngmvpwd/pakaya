@@ -48,6 +48,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const insertTeacherSchema = createInsertSchema(teachers).omit({
   id: true,
+}).extend({
+  teacherId: z.string().optional(),
 });
 
 export const insertAttendanceSchema = createInsertSchema(attendanceRecords).omit({

@@ -42,9 +42,27 @@ export default function Dashboard() {
     queryFn: () => fetch('/api/alerts?limit=5').then(res => res.json()),
   });
 
-  const handleExport = () => {
-    // This would trigger the export functionality
-    console.log("Export functionality triggered");
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`/api/export/attendance?format=${format}&endDate=${today}`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance_${today}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        console.error('Export failed');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+    }
   };
 
   const chartData = trends?.map((trend: any) => ({

@@ -70,7 +70,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTeacher(teacher: InsertTeacher): Promise<Teacher> {
-    const result = await db.insert(teachers).values(teacher).returning();
+    // Auto-generate teacher ID if not provided
+    let teacherId = teacher.teacherId;
+    if (!teacherId) {
+      const existingTeachers = await db.select({ teacherId: teachers.teacherId }).from(teachers).orderBy(desc(teachers.teacherId));
+      const lastTeacherId = existingTeachers[0]?.teacherId;
+      
+      let nextNumber = 1;
+      if (lastTeacherId && lastTeacherId.startsWith('T')) {
+        const lastNumber = parseInt(lastTeacherId.substring(1));
+        if (!isNaN(lastNumber)) {
+          nextNumber = lastNumber + 1;
+        }
+      }
+      
+      teacherId = `T${String(nextNumber).padStart(3, '0')}`;
+    }
+    
+    const teacherData = { 
+      ...teacher, 
+      teacherId,
+      name: teacher.name,
+      department: teacher.department,
+      email: teacher.email || null,
+      phone: teacher.phone || null,
+      joinDate: teacher.joinDate || null
+    } as typeof teachers.$inferInsert;
+    const result = await db.insert(teachers).values(teacherData).returning();
     return result[0];
   }
 

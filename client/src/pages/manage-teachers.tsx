@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 const teacherFormSchema = z.object({
-  teacherId: z.string().min(1, "Teacher ID is required"),
+  teacherId: z.string().optional().or(z.literal("")),
   name: z.string().min(1, "Name is required"),
   department: z.string().min(1, "Department is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -121,23 +121,21 @@ export default function ManageTeachers() {
   );
 
   const handleSubmit = (data: TeacherForm) => {
+    const teacherData = {
+      ...data,
+      teacherId: data.teacherId || undefined, // Let server auto-generate if empty
+      email: data.email || null,
+      phone: data.phone || null,
+      joinDate: data.joinDate || null
+    };
+
     if (editingTeacher) {
       updateTeacherMutation.mutate({
         id: editingTeacher.id,
-        data: {
-          ...data,
-          email: data.email || null,
-          phone: data.phone || null,
-          joinDate: data.joinDate || null
-        }
+        data: teacherData
       });
     } else {
-      createTeacherMutation.mutate({
-        ...data,
-        email: data.email || null,
-        phone: data.phone || null,
-        joinDate: data.joinDate || null
-      });
+      createTeacherMutation.mutate(teacherData);
     }
   };
 
