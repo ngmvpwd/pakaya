@@ -259,7 +259,7 @@ export class DatabaseStorage implements IStorage {
 
     // Calculate attendance rate based on total teachers, not just recorded attendance
     if (stats.totalTeachers > 0) {
-      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5 + stats.shortLeaveToday * 0.8) / stats.totalTeachers) * 100 * 10) / 10;
+      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5 + stats.shortLeaveToday * 0.8) / stats.totalTeachers) * 100);
     }
 
     return stats;
@@ -373,7 +373,7 @@ export class DatabaseStorage implements IStorage {
       department: row.department,
       teacherCount: row.teacherCount,
       attendanceRate: row.totalRecords > 0 
-        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100 * 10) / 10
+        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100)
         : 0
     }));
   }
@@ -473,7 +473,7 @@ export class DatabaseStorage implements IStorage {
       const [attendanceStats] = await query;
       
       const attendanceRate = attendanceStats && attendanceStats.totalRecords > 0 
-        ? Math.round(((attendanceStats.presentRecords + attendanceStats.halfDayRecords * 0.5 + attendanceStats.shortLeaveRecords * 0.8) / attendanceStats.totalRecords) * 100 * 10) / 10
+        ? Math.round(((attendanceStats.presentRecords + attendanceStats.halfDayRecords * 0.5 + attendanceStats.shortLeaveRecords * 0.8) / attendanceStats.totalRecords) * 100)
         : 0;
 
       exportData.push({
@@ -583,7 +583,7 @@ export class DatabaseStorage implements IStorage {
     return result.map(row => ({
       teacher: row.teacher,
       attendanceRate: row.totalRecords > 0 
-        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100 * 10) / 10
+        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100)
         : 0
     }));
   }
