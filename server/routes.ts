@@ -330,12 +330,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.send(csvData);
       } else if (format === 'pdf') {
-        // For PDF, we'll return a simple text format that can be converted to PDF
-        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="attendance.pdf"');
         
-        let pdfData = 'ATTENDANCE REPORT\n';
-        pdfData += '===================\n\n';
+        // Generate HTML content for PDF conversion
+        let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: bold; color: #333; }
+            .subtitle { font-size: 16px; color: #666; margin-top: 10px; }
+            .section { margin-bottom: 20px; }
+            .teacher-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+            .record { border-bottom: 1px solid #eee; padding: 10px 0; }
+            .record:last-child { border-bottom: none; }
+            .status-present { color: #22c55e; font-weight: bold; }
+            .status-absent { color: #ef4444; font-weight: bold; }
+            .status-half_day { color: #f59e0b; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f8f9fa; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">ATTENDANCE REPORT</div>
+            <div class="subtitle">Generated on ${new Date().toLocaleDateString()}</div>
+          </div>
+        `;
         
         if (teacherId) {
           const attendance = await storage.getAttendanceByTeacher(
@@ -345,30 +370,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           const teacher = await storage.getTeacherById(parseInt(teacherId as string));
           
-          pdfData += `Teacher: ${teacher?.name}\n`;
-          pdfData += `Department: ${teacher?.department}\n\n`;
+          htmlContent += `
+          <div class="teacher-info">
+            <h3>Teacher: ${teacher?.name}</h3>
+            <p>Department: ${teacher?.department}</p>
+            <p>Teacher ID: ${teacher?.teacherId}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Check-in Time</th>
+              </tr>
+            </thead>
+            <tbody>
+          `;
           
           attendance.forEach(record => {
-            pdfData += `Date: ${record.date}\n`;
-            pdfData += `Status: ${record.status}\n`;
-            pdfData += `Check-in: ${record.checkInTime || 'N/A'}\n\n`;
+            htmlContent += `
+            <tr>
+              <td>${record.date}</td>
+              <td class="status-${record.status}">${record.status.replace('_', ' ').toUpperCase()}</td>
+              <td>${record.checkInTime || 'N/A'}</td>
+            </tr>
+            `;
           });
+          
+          htmlContent += '</tbody></table>';
         } else {
           const today = new Date().toISOString().split('T')[0];
           const targetDate = (endDate as string) || today;
           const attendance = await storage.getAttendanceByDate(targetDate);
           
-          pdfData += `Date: ${targetDate}\n\n`;
+          htmlContent += `
+          <div class="section">
+            <h3>Daily Attendance Report - ${targetDate}</h3>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Teacher Name</th>
+                <th>Department</th>
+                <th>Teacher ID</th>
+                <th>Status</th>
+                <th>Check-in Time</th>
+              </tr>
+            </thead>
+            <tbody>
+          `;
           
           attendance.forEach(record => {
-            pdfData += `Teacher: ${record.teacher.name}\n`;
-            pdfData += `Department: ${record.teacher.department}\n`;
-            pdfData += `Status: ${record.status}\n`;
-            pdfData += `Check-in: ${record.checkInTime || 'N/A'}\n\n`;
+            htmlContent += `
+            <tr>
+              <td>${record.teacher.name}</td>
+              <td>${record.teacher.department}</td>
+              <td>${record.teacher.teacherId}</td>
+              <td class="status-${record.status}">${record.status.replace('_', ' ').toUpperCase()}</td>
+              <td>${record.checkInTime || 'N/A'}</td>
+            </tr>
+            `;
           });
+          
+          htmlContent += '</tbody></table>';
         }
         
-        res.send(pdfData);
+        htmlContent += `
+          <div style="margin-top: 30px; font-size: 12px; color: #666;">
+            <p>Report generated automatically by School Attendance Management System</p>
+          </div>
+        </body>
+        </html>
+        `;
+        
+        // For now, return HTML that browsers can print as PDF
+        // In production, you'd use a library like puppeteer or jsPDF
+        res.setHeader('Content-Type', 'text/html');
+        res.send(htmlContent);
       } else {
         res.status(400).json({ message: "Unsupported export format. Use 'csv' or 'pdf'" });
       }

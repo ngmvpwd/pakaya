@@ -16,7 +16,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 const teacherFormSchema = z.object({
-  teacherId: z.string().optional().or(z.literal("")),
   name: z.string().min(1, "Name is required"),
   department: z.string().min(1, "Department is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -44,7 +43,6 @@ export default function ManageTeachers() {
   const form = useForm<TeacherForm>({
     resolver: zodResolver(teacherFormSchema),
     defaultValues: {
-      teacherId: "",
       name: "",
       department: "",
       email: "",
@@ -128,7 +126,6 @@ export default function ManageTeachers() {
   const handleSubmit = (data: TeacherForm) => {
     const teacherData = {
       ...data,
-      teacherId: data.teacherId || undefined, // Let server auto-generate if empty
       email: data.email || null,
       phone: data.phone || null,
       joinDate: data.joinDate || null
@@ -147,7 +144,6 @@ export default function ManageTeachers() {
   const handleEdit = (teacher: Teacher) => {
     setEditingTeacher(teacher);
     form.reset({
-      teacherId: teacher.teacherId,
       name: teacher.name,
       department: teacher.department,
       email: teacher.email || "",
@@ -304,11 +300,18 @@ export default function ManageTeachers() {
 
             <div>
               <Label htmlFor="department">Department *</Label>
-              <Input
-                id="department"
-                {...form.register("department")}
-                placeholder="Mathematics"
-              />
+              <Select value={form.watch("department")} onValueChange={(value) => form.setValue("department", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {form.formState.errors.department && (
                 <p className="text-sm text-red-600 mt-1">
                   {form.formState.errors.department.message}
