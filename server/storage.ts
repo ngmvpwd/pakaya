@@ -101,19 +101,19 @@ export class SqliteStorage implements IStorage {
   }
 
   async getAttendanceByTeacher(teacherId: number, startDate?: string, endDate?: string): Promise<AttendanceRecord[]> {
-    let query = db.select().from(attendanceRecords).where(eq(attendanceRecords.teacherId, teacherId));
-    
     if (startDate && endDate) {
-      query = query.where(
+      return await db.select().from(attendanceRecords).where(
         and(
           eq(attendanceRecords.teacherId, teacherId),
           sql`${attendanceRecords.date} >= ${startDate}`,
           sql`${attendanceRecords.date} <= ${endDate}`
         )
-      );
+      ).orderBy(desc(attendanceRecords.date));
     }
     
-    return await query.orderBy(desc(attendanceRecords.date));
+    return await db.select().from(attendanceRecords)
+      .where(eq(attendanceRecords.teacherId, teacherId))
+      .orderBy(desc(attendanceRecords.date));
   }
 
   async createAttendanceRecord(attendance: InsertAttendance): Promise<AttendanceRecord> {
