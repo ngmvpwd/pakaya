@@ -104,7 +104,7 @@ export default function Analytics() {
 
   const departments = [...new Set(teachers?.map((t: any) => t.department) || [])];
   const filteredTeachers = teachers?.filter((t: any) => 
-    !selectedDepartment || t.department === selectedDepartment
+    !selectedDepartment || selectedDepartment === 'all' || t.department === selectedDepartment
   ) || [];
 
   return (
@@ -138,7 +138,7 @@ export default function Analytics() {
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept: string) => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
@@ -152,7 +152,7 @@ export default function Analytics() {
                   <SelectValue placeholder="All Teachers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Teachers</SelectItem>
+                  <SelectItem value="all">All Teachers</SelectItem>
                   {filteredTeachers.map((teacher: any) => (
                     <SelectItem key={teacher.id} value={teacher.id.toString()}>
                       {teacher.name}

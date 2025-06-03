@@ -135,7 +135,7 @@ export default function Attendance() {
   const filteredTeachers = teachers.filter((teacher: any) => {
     const matchesSearch = teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          teacher.teacherId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = !departmentFilter || teacher.department === departmentFilter;
+    const matchesDepartment = !departmentFilter || departmentFilter === 'all' || teacher.department === departmentFilter;
     return matchesSearch && matchesDepartment;
   });
 
@@ -209,7 +209,7 @@ export default function Attendance() {
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept: string) => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}

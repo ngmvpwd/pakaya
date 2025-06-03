@@ -38,7 +38,7 @@ export default function Teachers() {
   const filteredTeachers = teachersWithStats.filter((teacher: any) => {
     const matchesSearch = teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          teacher.teacherId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = !departmentFilter || teacher.department === departmentFilter;
+    const matchesDepartment = !departmentFilter || departmentFilter === 'all' || teacher.department === departmentFilter;
     
     let matchesAttendance = true;
     if (attendanceFilter === '90+') {
@@ -101,7 +101,7 @@ export default function Teachers() {
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept: string) => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
@@ -115,7 +115,7 @@ export default function Teachers() {
                   <SelectValue placeholder="All Ranges" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Ranges</SelectItem>
+                  <SelectItem value="all">All Ranges</SelectItem>
                   <SelectItem value="90+">90%+</SelectItem>
                   <SelectItem value="75-90">75-90%</SelectItem>
                   <SelectItem value="below75">Below 75%</SelectItem>
