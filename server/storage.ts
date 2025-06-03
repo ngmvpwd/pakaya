@@ -31,6 +31,7 @@ export interface IStorage {
   getAttendanceByTeacher(teacherId: number, startDate?: string, endDate?: string): Promise<AttendanceRecord[]>;
   createAttendanceRecord(attendance: InsertAttendance): Promise<AttendanceRecord>;
   updateAttendanceRecord(id: number, attendance: Partial<InsertAttendance>): Promise<AttendanceRecord | undefined>;
+  getAttendanceRecordByTeacherAndDate(teacherId: number, date: string): Promise<AttendanceRecord | undefined>;
   getAttendanceStats(startDate?: string, endDate?: string): Promise<{
     totalTeachers: number;
     presentToday: number;
@@ -183,8 +184,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAttendanceRecord(id: number, attendance: Partial<InsertAttendance>): Promise<AttendanceRecord | undefined> {
-    const result = await db.update(attendanceRecords).set(attendance).where(eq(attendanceRecords.id, id)).returning();
+    const result = await db.update(attendanceRecords).set({ ...attendance, updatedAt: new Date() }).where(eq(attendanceRecords.id, id)).returning();
     return result[0];
+  }
+
+  async getAttendanceRecordByTeacherAndDate(teacherId: number, date: string): Promise<AttendanceRecord | undefined> {
+    const [record] = await db
+      .select()
+      .from(attendanceRecords)
+      .where(and(eq(attendanceRecords.teacherId, teacherId), eq(attendanceRecords.date, date)))
+      .limit(1);
+    return record;
   }
 
   async getAttendanceStats(startDate?: string, endDate?: string): Promise<{

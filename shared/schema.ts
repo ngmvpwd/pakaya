@@ -33,10 +33,12 @@ export const attendanceRecords = pgTable("attendance_records", {
   teacherId: integer("teacher_id").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD format
   status: text("status").notNull(), // 'present', 'absent', 'half_day'
+  absentCategory: text("absent_category"), // 'official_leave', 'irregular_leave', 'sick_leave' (required when status is 'absent')
   checkInTime: text("check_in_time"),
   notes: text("notes"),
   recordedBy: integer("recorded_by").notNull(), // user id who recorded
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const alerts = pgTable("alerts", {
@@ -67,6 +69,18 @@ export const insertTeacherSchema = createInsertSchema(teachers).omit({
 export const insertAttendanceSchema = createInsertSchema(attendanceRecords).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+}).extend({
+  absentCategory: z.enum(['official_leave', 'irregular_leave', 'sick_leave']).optional(),
+}).refine((data) => {
+  // If status is 'absent', absentCategory is required
+  if (data.status === 'absent' && !data.absentCategory) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Absent category is required when status is absent",
+  path: ["absentCategory"]
 });
 
 export const insertAlertSchema = createInsertSchema(alerts).omit({
