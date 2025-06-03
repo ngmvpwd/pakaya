@@ -317,6 +317,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/analytics/absent", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const absentAnalytics = await storage.getAbsentAnalytics(startDate as string, endDate as string);
+      res.json(absentAnalytics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch absent analytics" });
+    }
+  });
+
+  app.get("/api/analytics/teacher/:teacherId/absent-pattern", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const { startDate, endDate } = req.query;
+      
+      const pattern = await storage.getTeacherAbsentPattern(teacherId, startDate as string, endDate as string);
+      res.json(pattern);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch teacher absent pattern" });
+    }
+  });
+
   // Alerts routes
   app.get("/api/alerts", async (req, res) => {
     try {

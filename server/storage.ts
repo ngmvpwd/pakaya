@@ -469,6 +469,94 @@ export class DatabaseStorage implements IStorage {
         : 0
     }));
   }
+
+  async getAbsentAnalytics(startDate?: string, endDate?: string): Promise<{
+    totalAbsent: number;
+    officialLeave: number;
+    irregularLeave: number;
+    sickLeave: number;
+    categorizedAbsences: Array<{ date: string; category: string; count: number }>;
+  }> {
+    const defaultStartDate = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const defaultEndDate = endDate || new Date().toISOString().split('T')[0];
+
+    const absentRecords = await db
+      .select({
+        date: attendanceRecords.date,
+        absentCategory: attendanceRecords.absentCategory,
+        count: sql<number>`count(*)`
+      })
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.status, 'absent'),
+        sql`${attendanceRecords.date} >= ${defaultStartDate}`,
+        sql`${attendanceRecords.date} <= ${defaultEndDate}`
+      ))
+      .groupBy(attendanceRecords.date, attendanceRecords.absentCategory)
+      .orderBy(asc(attendanceRecords.date));
+
+    const stats = {
+      totalAbsent: 0,
+      officialLeave: 0,
+      irregularLeave: 0,
+      sickLeave: 0,
+      categorizedAbsences: [] as Array<{ date: string; category: string; count: number }>
+    };
+
+    absentRecords.forEach(record => {
+      stats.totalAbsent += record.count;
+      const category = record.absentCategory || 'unknown';
+      
+      switch (category) {
+        case 'official_leave':
+          stats.officialLeave += record.count;
+          break;
+        case 'irregular_leave':
+          stats.irregularLeave += record.count;
+          break;
+        case 'sick_leave':
+          stats.sickLeave += record.count;
+          break;
+      }
+
+      stats.categorizedAbsences.push({
+        date: record.date,
+        category: category,
+        count: record.count
+      });
+    });
+
+    return stats;
+  }
+
+  async getTeacherAbsentPattern(teacherId: number, startDate?: string, endDate?: string): Promise<Array<{
+    date: string;
+    status: string;
+    category?: string;
+  }>> {
+    const defaultStartDate = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const defaultEndDate = endDate || new Date().toISOString().split('T')[0];
+
+    const records = await db
+      .select({
+        date: attendanceRecords.date,
+        status: attendanceRecords.status,
+        absentCategory: attendanceRecords.absentCategory
+      })
+      .from(attendanceRecords)
+      .where(and(
+        eq(attendanceRecords.teacherId, teacherId),
+        sql`${attendanceRecords.date} >= ${defaultStartDate}`,
+        sql`${attendanceRecords.date} <= ${defaultEndDate}`
+      ))
+      .orderBy(desc(attendanceRecords.date));
+
+    return records.map(record => ({
+      date: record.date,
+      status: record.status,
+      category: record.absentCategory || undefined
+    }));
+  }
 }
 
 export const storage = new DatabaseStorage();

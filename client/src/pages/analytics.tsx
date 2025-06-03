@@ -46,6 +46,18 @@ export default function Analytics() {
       }
       return fetch(`/api/stats/trends?days=${dateRange}`).then(res => res.json());
     },
+    refetchInterval: 30000, // Real-time updates every 30 seconds
+  });
+
+  const { data: absentAnalytics } = useQuery({
+    queryKey: ['/api/analytics/absent', customDateRange, startDate, endDate],
+    queryFn: () => {
+      if (customDateRange && startDate && endDate) {
+        return fetch(`/api/analytics/absent?startDate=${startDate}&endDate=${endDate}`).then(res => res.json());
+      }
+      return fetch('/api/analytics/absent').then(res => res.json());
+    },
+    refetchInterval: 30000,
   });
 
   const { data: departmentStats = [] } = useQuery<any[]>({
@@ -112,6 +124,12 @@ export default function Analytics() {
     { name: 'Half Day', value: pieData.halfDay, color: COLORS[2] },
     { name: 'Absent', value: pieData.absent, color: COLORS[3] },
   ] : [];
+
+  const absentCategoryData = absentAnalytics ? [
+    { name: 'Official Leave', value: absentAnalytics.officialLeave, color: COLORS[0] },
+    { name: 'Irregular Leave', value: absentAnalytics.irregularLeave, color: COLORS[1] },
+    { name: 'Sick Leave', value: absentAnalytics.sickLeave, color: COLORS[2] },
+  ].filter(item => item.value > 0) : [];
 
   const departmentPieData = departmentStats?.map((dept: any, index: number) => ({
     name: dept.department,
@@ -323,6 +341,35 @@ export default function Analytics() {
                   ))}
                 </Pie>
                 <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Absent Categories Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Absent Categories Analysis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={absentCategoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {absentCategoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [`${value} absences`, 'Count']} />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
