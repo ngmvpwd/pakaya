@@ -11,7 +11,8 @@ import {
   LogOut,
   GraduationCap,
   UserPlus,
-  Settings
+  Settings,
+  Building2
 } from "lucide-react";
 
 interface NavigationItem {
@@ -32,6 +33,7 @@ const getNavigationItems = (userRole: string): NavigationItem[] => {
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/teachers", label: "Teacher Profiles", icon: Users },
       { href: "/manage-teachers", label: "Manage Teachers", icon: UserPlus },
+      { href: "/manage-departments", label: "Manage Departments", icon: Building2 },
     ];
   }
 
