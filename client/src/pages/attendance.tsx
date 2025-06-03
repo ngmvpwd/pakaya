@@ -40,6 +40,7 @@ export default function Attendance() {
 
   const { data: attendance = [], isLoading } = useQuery({
     queryKey: ['/api/attendance/date', selectedDate],
+    queryFn: () => fetch(`/api/attendance/date?date=${selectedDate}`).then(res => res.json()),
     enabled: !!selectedDate,
   });
 

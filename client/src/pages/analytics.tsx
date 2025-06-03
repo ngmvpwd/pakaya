@@ -37,26 +37,26 @@ export default function Analytics() {
     queryFn: () => fetch(`/api/stats/trends?days=${dateRange}`).then(res => res.json()),
   });
 
-  const { data: departmentStats } = useQuery({
+  const { data: departmentStats = [] } = useQuery<any[]>({
     queryKey: ['/api/stats/departments'],
   });
 
-  const { data: topPerformers } = useQuery({
+  const { data: topPerformers = [] } = useQuery<any[]>({
     queryKey: ['/api/stats/top-performers'],
     queryFn: () => fetch('/api/stats/top-performers?limit=5').then(res => res.json()),
   });
 
-  const { data: teachers } = useQuery({
+  const { data: teachers = [] } = useQuery<any[]>({
     queryKey: ['/api/teachers'],
   });
 
-  const handleExport = async (format: 'csv' | 'pdf') => {
+  const handleExport = async (exportFormat: 'csv' | 'pdf') => {
     try {
       const endDate = format(new Date(), 'yyyy-MM-dd');
       const startDate = format(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
       
       await exportAttendanceData({
-        format,
+        format: exportFormat,
         startDate,
         endDate,
         ...(selectedTeacher && { teacherId: parseInt(selectedTeacher) }),
@@ -64,12 +64,12 @@ export default function Analytics() {
       
       toast({
         title: "Success",
-        description: `Report exported as ${format.toUpperCase()} successfully`,
+        description: `Report exported as ${exportFormat.toUpperCase()} successfully`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to export ${format.toUpperCase()} report`,
+        description: `Failed to export ${exportFormat.toUpperCase()} report`,
         variant: "destructive",
       });
     }

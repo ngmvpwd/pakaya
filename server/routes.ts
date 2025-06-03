@@ -99,9 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance routes
-  app.get("/api/attendance/date/:date", async (req, res) => {
+  app.get("/api/attendance/date", async (req, res) => {
     try {
-      const date = req.params.date;
+      const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
       const attendance = await storage.getAttendanceByDate(date);
       res.json(attendance);
     } catch (error) {
