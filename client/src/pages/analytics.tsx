@@ -142,7 +142,15 @@ export default function Analytics() {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-              <Select value={dateRange} onValueChange={setDateRange}>
+              <Select value={customDateRange ? 'custom' : dateRange} onValueChange={(value) => {
+                if (value === 'custom') {
+                  setCustomDateRange(true);
+                  setDateRange('30');
+                } else {
+                  setCustomDateRange(false);
+                  setDateRange(value);
+                }
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -150,9 +158,35 @@ export default function Analytics() {
                   <SelectItem value="7">Last 7 days</SelectItem>
                   <SelectItem value="30">Last 30 days</SelectItem>
                   <SelectItem value="90">Last 3 months</SelectItem>
+                  <SelectItem value="180">Last 6 months</SelectItem>
+                  <SelectItem value="365">Last year</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
+            {customDateRange && (
+              <>
+                <div>
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="endDate">End Date</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
