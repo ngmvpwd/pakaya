@@ -133,7 +133,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTeacher(teacher: InsertTeacher): Promise<Teacher> {
-    const result = await db.insert(teachers).values(teacher).returning();
+    // Auto-generate teacher ID if not provided
+    let teacherId = teacher.teacherId;
+    if (!teacherId) {
+      const existingTeachers = await db.select({ teacherId: teachers.teacherId }).from(teachers).orderBy(desc(teachers.teacherId));
+      const lastTeacherId = existingTeachers[0]?.teacherId;
+      
+      let nextNumber = 1;
+      if (lastTeacherId && lastTeacherId.startsWith('T')) {
+        const lastNumber = parseInt(lastTeacherId.substring(1));
+        if (!isNaN(lastNumber)) {
+          nextNumber = lastNumber + 1;
+        }
+      }
+      
+      teacherId = `T${String(nextNumber).padStart(3, '0')}`;
+    }
+    
+    const teacherData = { 
+      ...teacher, 
+      teacherId,
+      name: teacher.name,
+      department: teacher.department,
+      email: teacher.email || null,
+      phone: teacher.phone || null,
+      joinDate: teacher.joinDate || null
+    } as typeof teachers.$inferInsert;
+    const result = await db.insert(teachers).values(teacherData).returning();
     return result[0];
   }
 
@@ -153,9 +179,18 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(teachers, eq(attendanceRecords.teacherId, teachers.id))
       .where(eq(attendanceRecords.date, date))
       .orderBy(asc(teachers.name));
-    
+
     return result.map(row => ({
-      ...row.attendance_records,
+      id: row.attendance_records.id,
+      teacherId: row.attendance_records.teacherId,
+      date: row.attendance_records.date,
+      status: row.attendance_records.status,
+      absentCategory: row.attendance_records.absentCategory,
+      checkInTime: row.attendance_records.checkInTime,
+      notes: row.attendance_records.notes,
+      recordedBy: row.attendance_records.recordedBy,
+      createdAt: row.attendance_records.createdAt,
+      updatedAt: row.attendance_records.updatedAt,
       teacher: row.teachers
     }));
   }
@@ -271,7 +306,7 @@ export class DatabaseStorage implements IStorage {
     
     result.forEach(row => {
       if (!trendsMap.has(row.date)) {
-        trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
+        trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0 });
       }
       const trend = trendsMap.get(row.date)!;
       
@@ -284,9 +319,6 @@ export class DatabaseStorage implements IStorage {
           break;
         case 'half_day':
           trend.halfDay = row.count;
-          break;
-        case 'short_leave':
-          trend.shortLeave = row.count;
           break;
       }
     });
@@ -294,7 +326,7 @@ export class DatabaseStorage implements IStorage {
     return Array.from(trendsMap.entries()).map(([date, stats]) => ({ date, ...stats }));
   }
 
-  async getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>> {
+  async getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>> {
     const result = await db
       .select({
         date: attendanceRecords.date,
@@ -302,18 +334,15 @@ export class DatabaseStorage implements IStorage {
         count: sql<number>`count(*)`
       })
       .from(attendanceRecords)
-      .where(and(
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      ))
+      .where(sql`${attendanceRecords.date} >= ${startDate} AND ${attendanceRecords.date} <= ${endDate}`)
       .groupBy(attendanceRecords.date, attendanceRecords.status)
       .orderBy(asc(attendanceRecords.date));
 
-    const trendsMap = new Map<string, { present: number; absent: number; halfDay: number; shortLeave: number }>();
+    const trendsMap = new Map<string, { present: number; absent: number; halfDay: number }>();
     
     result.forEach(row => {
       if (!trendsMap.has(row.date)) {
-        trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
+        trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0 });
       }
       const trend = trendsMap.get(row.date)!;
       
@@ -326,9 +355,6 @@ export class DatabaseStorage implements IStorage {
           break;
         case 'half_day':
           trend.halfDay = row.count;
-          break;
-        case 'short_leave':
-          trend.shortLeave = row.count;
           break;
       }
     });
@@ -348,7 +374,6 @@ export class DatabaseStorage implements IStorage {
         totalRecords: sql<number>`count(${attendanceRecords.id})`,
         presentRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end)`,
         halfDayRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end)`,
-        shortLeaveRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end)`,
       })
       .from(teachers)
       .leftJoin(attendanceRecords, eq(teachers.id, attendanceRecords.teacherId))
@@ -359,137 +384,31 @@ export class DatabaseStorage implements IStorage {
       department: row.department,
       teacherCount: row.teacherCount,
       attendanceRate: row.totalRecords > 0 
-        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100 * 10) / 10
+        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5) / row.totalRecords) * 100 * 10) / 10
         : 0
     }));
   }
 
-  async getTeacherAbsenceTotals(teacherId: number, startDate?: string, endDate?: string): Promise<{
-    totalAbsences: number;
-    officialLeave: number;
-    privateLeave: number;
-    sickLeave: number;
-    shortLeave: number;
-  }> {
-    let query = db
-      .select({
-        status: attendanceRecords.status,
-        absentCategory: attendanceRecords.absentCategory,
-        count: sql<number>`count(*)`
-      })
-      .from(attendanceRecords)
-      .where(eq(attendanceRecords.teacherId, teacherId));
-
-    if (startDate && endDate) {
-      query = query.where(and(
-        eq(attendanceRecords.teacherId, teacherId),
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      ));
-    }
-
-    const result = await query.groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
-
-    const totals = {
-      totalAbsences: 0,
-      officialLeave: 0,
-      privateLeave: 0,
-      sickLeave: 0,
-      shortLeave: 0,
-    };
-
-    result.forEach(row => {
-      if (row.status === 'absent') {
-        totals.totalAbsences += row.count;
-        switch (row.absentCategory) {
-          case 'official_leave':
-            totals.officialLeave += row.count;
-            break;
-          case 'private_leave':
-            totals.privateLeave += row.count;
-            break;
-          case 'sick_leave':
-            totals.sickLeave += row.count;
-            break;
-        }
-      } else if (row.status === 'short_leave') {
-        totals.shortLeave += row.count;
-      }
-    });
-
-    return totals;
-  }
-
-  async getAttendanceExportData(startDate?: string, endDate?: string): Promise<Array<{
-    teacherId: string;
-    teacherName: string;
-    department: string;
-    totalAbsences: number;
-    officialLeave: number;
-    privateLeave: number;
-    sickLeave: number;
-    shortLeave: number;
-    attendanceRate: number;
-  }>> {
-    const allTeachers = await db.select().from(teachers).orderBy(asc(teachers.name));
-    
-    const exportData = [];
-    
-    for (const teacher of allTeachers) {
-      const absenceTotals = await this.getTeacherAbsenceTotals(teacher.id, startDate, endDate);
-      
-      let query = db
-        .select({
-          totalRecords: sql<number>`count(*)`,
-          presentRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end)`,
-          halfDayRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end)`,
-          shortLeaveRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end)`,
-        })
-        .from(attendanceRecords)
-        .where(eq(attendanceRecords.teacherId, teacher.id));
-
-      if (startDate && endDate) {
-        query = query.where(and(
-          eq(attendanceRecords.teacherId, teacher.id),
-          sql`${attendanceRecords.date} >= ${startDate}`,
-          sql`${attendanceRecords.date} <= ${endDate}`
-        ));
-      }
-
-      const [attendanceStats] = await query;
-      
-      const attendanceRate = attendanceStats && attendanceStats.totalRecords > 0 
-        ? Math.round(((attendanceStats.presentRecords + attendanceStats.halfDayRecords * 0.5 + attendanceStats.shortLeaveRecords * 0.8) / attendanceStats.totalRecords) * 100 * 10) / 10
-        : 0;
-
-      exportData.push({
-        teacherId: teacher.teacherId,
-        teacherName: teacher.name,
-        department: teacher.department,
-        totalAbsences: absenceTotals.totalAbsences,
-        officialLeave: absenceTotals.officialLeave,
-        privateLeave: absenceTotals.privateLeave,
-        sickLeave: absenceTotals.sickLeave,
-        shortLeave: absenceTotals.shortLeave,
-        attendanceRate,
-      });
-    }
-
-    return exportData;
-  }
-
   async getAlerts(limit = 10): Promise<(Alert & { teacher: Teacher })[]> {
     const result = await db
-      .select()
+      .select({
+        id: alerts.id,
+        teacherId: alerts.teacherId,
+        type: alerts.type,
+        message: alerts.message,
+        severity: alerts.severity,
+        isRead: alerts.isRead,
+        createdAt: alerts.createdAt,
+        teacher: teachers,
+      })
       .from(alerts)
       .innerJoin(teachers, eq(alerts.teacherId, teachers.id))
-      .where(eq(alerts.isRead, false))
       .orderBy(desc(alerts.createdAt))
       .limit(limit);
-    
+
     return result.map(row => ({
-      ...row.alerts,
-      teacher: row.teachers
+      ...row,
+      teacher: row.teacher
     }));
   }
 
@@ -510,13 +429,15 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select({
         date: attendanceRecords.date,
-        status: attendanceRecords.status
+        status: attendanceRecords.status,
       })
       .from(attendanceRecords)
-      .where(and(
-        eq(attendanceRecords.teacherId, teacherId),
-        sql`${attendanceRecords.date} >= ${startDateStr}`
-      ))
+      .where(
+        and(
+          eq(attendanceRecords.teacherId, teacherId),
+          sql`${attendanceRecords.date} >= ${startDateStr}`
+        )
+      )
       .orderBy(asc(attendanceRecords.date));
 
     // Group by weeks and calculate rates
@@ -534,8 +455,8 @@ export class DatabaseStorage implements IStorage {
       
       const stats = weeklyStats.get(weekKey)!;
       stats.total++;
-      if (record.status === 'present' || record.status === 'half_day' || record.status === 'short_leave') {
-        stats.present += record.status === 'present' ? 1 : record.status === 'short_leave' ? 0.8 : 0.5;
+      if (record.status === 'present' || record.status === 'half_day') {
+        stats.present += record.status === 'present' ? 1 : 0.5;
       }
     });
 
@@ -556,20 +477,19 @@ export class DatabaseStorage implements IStorage {
         totalRecords: sql<number>`count(${attendanceRecords.id})`,
         presentRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end)`,
         halfDayRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end)`,
-        shortLeaveRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end)`,
       })
       .from(teachers)
       .leftJoin(attendanceRecords, eq(teachers.id, attendanceRecords.teacherId))
       .where(sql`${attendanceRecords.date} >= ${startDate}`)
       .groupBy(teachers.id)
       .having(sql`count(${attendanceRecords.id}) > 0`)
-      .orderBy(sql`((sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end) + sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end) * 0.5 + sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end) * 0.8) / count(${attendanceRecords.id})) DESC`)
+      .orderBy(sql`((sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end) + sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end) * 0.5) / count(${attendanceRecords.id})) DESC`)
       .limit(limit);
 
     return result.map(row => ({
       teacher: row.teacher,
       attendanceRate: row.totalRecords > 0 
-        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5 + row.shortLeaveRecords * 0.8) / row.totalRecords) * 100 * 10) / 10
+        ? Math.round(((row.presentRecords + row.halfDayRecords * 0.5) / row.totalRecords) * 100 * 10) / 10
         : 0
     }));
   }
@@ -581,62 +501,56 @@ export class DatabaseStorage implements IStorage {
     sickLeave: number;
     categorizedAbsences: Array<{ date: string; category: string; count: number }>;
   }> {
-    let query = db
+    const defaultStartDate = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const defaultEndDate = endDate || new Date().toISOString().split('T')[0];
+
+    const absentRecords = await db
       .select({
         date: attendanceRecords.date,
         absentCategory: attendanceRecords.absentCategory,
         count: sql<number>`count(*)`
       })
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.status, 'absent'));
-
-    if (startDate && endDate) {
-      query = query.where(and(
+      .where(and(
         eq(attendanceRecords.status, 'absent'),
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      ));
-    }
+        sql`${attendanceRecords.date} >= ${defaultStartDate}`,
+        sql`${attendanceRecords.date} <= ${defaultEndDate}`
+      ))
+      .groupBy(attendanceRecords.date, attendanceRecords.absentCategory)
+      .orderBy(asc(attendanceRecords.date));
 
-    const result = await query.groupBy(attendanceRecords.date, attendanceRecords.absentCategory);
+    const stats = {
+      totalAbsent: 0,
+      officialLeave: 0,
+      irregularLeave: 0,
+      sickLeave: 0,
+      categorizedAbsences: [] as Array<{ date: string; category: string; count: number }>
+    };
 
-    let totalAbsent = 0;
-    let officialLeave = 0;
-    let irregularLeave = 0;
-    let sickLeave = 0;
-    const categorizedAbsences: Array<{ date: string; category: string; count: number }> = [];
-
-    result.forEach(row => {
-      totalAbsent += row.count;
-      const category = row.absentCategory || 'irregular_leave';
+    absentRecords.forEach(record => {
+      stats.totalAbsent += record.count;
+      const category = record.absentCategory || 'unknown';
       
       switch (category) {
         case 'official_leave':
-          officialLeave += row.count;
+          stats.officialLeave += record.count;
           break;
-        case 'private_leave':
         case 'irregular_leave':
-          irregularLeave += row.count;
+          stats.irregularLeave += record.count;
           break;
         case 'sick_leave':
-          sickLeave += row.count;
+          stats.sickLeave += record.count;
           break;
       }
 
-      categorizedAbsences.push({
-        date: row.date,
-        category,
-        count: row.count
+      stats.categorizedAbsences.push({
+        date: record.date,
+        category: category,
+        count: record.count
       });
     });
 
-    return {
-      totalAbsent,
-      officialLeave,
-      irregularLeave,
-      sickLeave,
-      categorizedAbsences
-    };
+    return stats;
   }
 
   async getTeacherAbsentPattern(teacherId: number, startDate?: string, endDate?: string): Promise<Array<{
@@ -644,29 +558,27 @@ export class DatabaseStorage implements IStorage {
     status: string;
     category?: string;
   }>> {
-    let query = db
+    const defaultStartDate = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const defaultEndDate = endDate || new Date().toISOString().split('T')[0];
+
+    const records = await db
       .select({
         date: attendanceRecords.date,
         status: attendanceRecords.status,
         absentCategory: attendanceRecords.absentCategory
       })
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.teacherId, teacherId));
-
-    if (startDate && endDate) {
-      query = query.where(and(
+      .where(and(
         eq(attendanceRecords.teacherId, teacherId),
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      ));
-    }
+        sql`${attendanceRecords.date} >= ${defaultStartDate}`,
+        sql`${attendanceRecords.date} <= ${defaultEndDate}`
+      ))
+      .orderBy(desc(attendanceRecords.date));
 
-    const result = await query.orderBy(desc(attendanceRecords.date));
-
-    return result.map(row => ({
-      date: row.date,
-      status: row.status,
-      category: row.absentCategory || undefined
+    return records.map(record => ({
+      date: record.date,
+      status: record.status,
+      category: record.absentCategory || undefined
     }));
   }
 }

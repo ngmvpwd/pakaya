@@ -13,8 +13,10 @@ const bulkAttendanceSchema = z.object({
   date: z.string(),
   records: z.array(z.object({
     teacherId: z.number(),
-    status: z.enum(['present', 'absent', 'half_day']),
+    status: z.enum(['present', 'absent', 'half_day', 'short_leave']),
     checkInTime: z.string().optional(),
+    checkOutTime: z.string().optional(),
+    absentCategory: z.enum(['official_leave', 'private_leave', 'sick_leave']).optional(),
     notes: z.string().optional(),
   })),
   recordedBy: z.number(),
@@ -222,6 +224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           date,
           status: record.status,
           checkInTime: record.checkInTime || null,
+          checkOutTime: record.checkOutTime || null,
+          absentCategory: record.absentCategory || null,
           notes: record.notes || null,
           recordedBy,
         });
@@ -360,39 +364,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export routes
+  // Export routes with absence totals
   app.get("/api/export/attendance", async (req, res) => {
     try {
-      const { format, startDate, endDate, teacherId } = req.query;
+      const { format, startDate, endDate } = req.query;
       
-      // This is a simplified version - in production you'd use proper CSV/PDF libraries
       if (format === 'csv') {
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="attendance.csv"');
+        res.setHeader('Content-Disposition', 'attachment; filename="attendance-report.csv"');
         
-        let csvData = 'Teacher Name,Date,Status,Check In Time\n';
+        const exportData = await storage.getAttendanceExportData(
+          startDate as string,
+          endDate as string
+        );
         
-        if (teacherId) {
-          const attendance = await storage.getAttendanceByTeacher(
-            parseInt(teacherId as string),
-            startDate as string,
-            endDate as string
-          );
-          const teacher = await storage.getTeacherById(parseInt(teacherId as string));
-          
-          attendance.forEach(record => {
-            csvData += `${teacher?.name},${record.date},${record.status},${record.checkInTime || 'N/A'}\n`;
-          });
-        } else {
-          // Export all attendance for date range
-          const today = new Date().toISOString().split('T')[0];
-          const targetDate = (endDate as string) || today;
-          const attendance = await storage.getAttendanceByDate(targetDate);
-          
-          attendance.forEach(record => {
-            csvData += `${record.teacher.name},${record.date},${record.status},${record.checkInTime || 'N/A'}\n`;
-          });
-        }
+        let csvData = 'Teacher ID,Teacher Name,Department,Total Absences,Official Leave,Private Leave,Sick Leave,Short Leave,Attendance Rate\n';
+        
+        exportData.forEach(data => {
+          csvData += `${data.teacherId},${data.teacherName},${data.department},${data.totalAbsences},${data.officialLeave},${data.privateLeave},${data.sickLeave},${data.shortLeave},${data.attendanceRate}%\n`;
+        });
         
         res.send(csvData);
       } else if (format === 'pdf') {
