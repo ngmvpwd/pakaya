@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, teachers, attendanceRecords, alerts } from "@shared/schema";
+import { users, departments, teachers, attendanceRecords, alerts } from "@shared/schema";
 
 export async function clearDatabase() {
   console.log("Clearing all data from database...");
@@ -8,8 +8,9 @@ export async function clearDatabase() {
   await db.delete(alerts);
   await db.delete(attendanceRecords);
   await db.delete(teachers);
+  await db.delete(departments);
   
-  console.log("All teachers, attendance records, and alerts cleared successfully");
+  console.log("All data cleared successfully");
 }
 
 export async function seedDatabase() {
@@ -24,5 +25,22 @@ export async function seedDatabase() {
     console.log("Default users created");
   }
 
-  console.log("Database ready - no sample data added");
+  // Check if departments already exist
+  const existingDepartments = await db.select().from(departments).limit(1);
+  if (existingDepartments.length === 0) {
+    // Insert default departments
+    await db.insert(departments).values([
+      { name: 'Mathematics', description: 'Mathematics Department' },
+      { name: 'Science', description: 'Science Department' },
+      { name: 'English', description: 'English Department' },
+      { name: 'Social Studies', description: 'Social Studies Department' },
+      { name: 'Physical Education', description: 'Physical Education Department' },
+      { name: 'Art', description: 'Art Department' },
+      { name: 'Music', description: 'Music Department' },
+      { name: 'Computer Science', description: 'Computer Science Department' }
+    ]);
+    console.log("Default departments created");
+  }
+
+  console.log("Database ready with default departments");
 }

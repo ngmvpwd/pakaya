@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Edit, Plus, Search } from "lucide-react";
-import { Teacher, InsertTeacher } from "@shared/schema";
+import { Teacher, Department, InsertTeacher } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,6 +35,10 @@ export default function ManageTeachers() {
 
   const { data: teachers = [], isLoading } = useQuery<Teacher[]>({
     queryKey: ['/api/teachers'],
+  });
+
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ['/api/departments'],
   });
 
   const form = useForm<TeacherForm>({

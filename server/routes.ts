@@ -41,6 +41,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Department routes
+  app.get("/api/departments", async (req, res) => {
+    try {
+      const departments = await storage.getAllDepartments();
+      res.json(departments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch departments" });
+    }
+  });
+
+  app.post("/api/departments", async (req, res) => {
+    try {
+      const departmentData = insertDepartmentSchema.parse(req.body);
+      const department = await storage.createDepartment(departmentData);
+      res.json(department);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid department data" });
+    }
+  });
+
+  app.put("/api/departments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const departmentData = insertDepartmentSchema.partial().parse(req.body);
+      const department = await storage.updateDepartment(id, departmentData);
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      res.json(department);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid department data" });
+    }
+  });
+
+  app.delete("/api/departments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteDepartment(id);
+      res.json({ message: "Department deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete department" });
+    }
+  });
+
   // Teacher routes
   app.get("/api/teachers", async (req, res) => {
     try {
