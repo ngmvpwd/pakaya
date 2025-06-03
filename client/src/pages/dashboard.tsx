@@ -20,7 +20,8 @@ import {
   BarChart3,
   Download,
   AlertTriangle,
-  Users
+  Users,
+  FileText
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
@@ -159,14 +160,30 @@ export default function Dashboard() {
               <BarChart3 className="mr-3 h-4 w-4" />
               View Analytics
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={handleExport}
-            >
-              <Download className="mr-3 h-4 w-4" />
-              Export Reports
-            </Button>
+            <div className="space-y-2">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleExport('csv');
+                }}
+              >
+                <Download className="mr-3 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleExport('pdf');
+                }}
+              >
+                <FileText className="mr-3 h-4 w-4" />
+                Export PDF
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

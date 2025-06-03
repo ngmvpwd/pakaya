@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   LineChart,
   Line,
@@ -21,7 +22,7 @@ import {
 } from "recharts";
 import { exportAttendanceData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Search } from "lucide-react";
 import { format as formatDate, subDays } from "date-fns";
 
 const COLORS = ['hsl(var(--primary))', '#10B981', '#F59E0B', '#EF4444'];
@@ -30,6 +31,7 @@ export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedTeacher, setSelectedTeacher] = useState('');
+  const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const { toast } = useToast();
 
   const { data: trends } = useQuery({
@@ -109,9 +111,14 @@ export default function Analytics() {
   })) || [];
 
   const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
-  const filteredTeachers = teachers.filter((t: any) => 
-    !selectedDepartment || selectedDepartment === 'all' || t.department === selectedDepartment
-  );
+  const filteredTeachers = teachers.filter((t: any) => {
+    const matchesDepartment = !selectedDepartment || selectedDepartment === 'all' || t.department === selectedDepartment;
+    const matchesSearch = !teacherSearchTerm || 
+      t.name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+      t.teacherId.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+      t.department.toLowerCase().includes(teacherSearchTerm.toLowerCase());
+    return matchesDepartment && matchesSearch;
+  });
 
   return (
     <div className="space-y-6">
@@ -123,7 +130,7 @@ export default function Analytics() {
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
               <Select value={dateRange} onValueChange={setDateRange}>
@@ -152,14 +159,26 @@ export default function Analytics() {
               </Select>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search Teachers</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name, ID..."
+                  value={teacherSearchTerm}
+                  onChange={(e) => setTeacherSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Teacher</label>
               <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Search or select a teacher..." />
+                  <SelectValue placeholder="All Teachers" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Teachers</SelectItem>
-                  {teachers
+                  {filteredTeachers
                     .sort((a: any, b: any) => a.name.localeCompare(b.name))
                     .map((teacher: any) => (
                     <SelectItem key={teacher.id} value={teacher.id.toString()}>
@@ -170,9 +189,25 @@ export default function Analytics() {
               </Select>
             </div>
             <div className="md:col-span-2 flex items-end space-x-2">
-              <Button className="flex-1">
+              <Button 
+                className="flex-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleExport('csv');
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleExport('pdf');
+                }}
+              >
                 <FileText className="mr-2 h-4 w-4" />
-                Generate Report
+                PDF
               </Button>
             </div>
           </div>
