@@ -102,6 +102,12 @@ export default function Analytics() {
     { name: 'Absent', value: pieData.absent, color: COLORS[3] },
   ] : [];
 
+  const departmentPieData = departmentStats?.map((dept: any, index: number) => ({
+    name: dept.department,
+    value: dept.teacherCount,
+    color: COLORS[index % COLORS.length],
+  })) || [];
+
   const departments = [...new Set(teachers?.map((t: any) => t.department) || [])];
   const filteredTeachers = teachers?.filter((t: any) => 
     !selectedDepartment || selectedDepartment === 'all' || t.department === selectedDepartment

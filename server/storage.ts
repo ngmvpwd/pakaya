@@ -16,6 +16,8 @@ export interface IStorage {
   getTeacherById(id: number): Promise<Teacher | undefined>;
   getTeacherByTeacherId(teacherId: string): Promise<Teacher | undefined>;
   createTeacher(teacher: InsertTeacher): Promise<Teacher>;
+  updateTeacher(id: number, teacher: Partial<InsertTeacher>): Promise<Teacher | undefined>;
+  deleteTeacher(id: number): Promise<void>;
   
   // Attendance methods
   getAttendanceByDate(date: string): Promise<(AttendanceRecord & { teacher: Teacher })[]>;
@@ -70,6 +72,15 @@ export class DatabaseStorage implements IStorage {
   async createTeacher(teacher: InsertTeacher): Promise<Teacher> {
     const result = await db.insert(teachers).values(teacher).returning();
     return result[0];
+  }
+
+  async updateTeacher(id: number, teacher: Partial<InsertTeacher>): Promise<Teacher | undefined> {
+    const result = await db.update(teachers).set(teacher).where(eq(teachers.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTeacher(id: number): Promise<void> {
+    await db.delete(teachers).where(eq(teachers.id, id));
   }
 
   async getAttendanceByDate(date: string): Promise<(AttendanceRecord & { teacher: Teacher })[]> {

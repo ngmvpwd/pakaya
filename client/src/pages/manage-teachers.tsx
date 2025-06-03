@@ -32,7 +32,7 @@ export default function ManageTeachers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: teachers = [], isLoading } = useQuery({
+  const { data: teachers = [], isLoading } = useQuery<Teacher[]>({
     queryKey: ['/api/teachers'],
   });
 
@@ -114,7 +114,7 @@ export default function ManageTeachers() {
     }
   });
 
-  const filteredTeachers = teachers.filter((teacher: Teacher) =>
+  const filteredTeachers = teachers.filter((teacher) =>
     teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     teacher.teacherId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     teacher.department.toLowerCase().includes(searchTerm.toLowerCase())

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAttendanceSchema } from "@shared/schema";
+import { insertAttendanceSchema, insertTeacherSchema } from "@shared/schema";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -61,6 +61,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(teacher);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch teacher" });
+    }
+  });
+
+  app.post("/api/teachers", async (req, res) => {
+    try {
+      const teacherData = insertTeacherSchema.parse(req.body);
+      const teacher = await storage.createTeacher(teacherData);
+      res.json(teacher);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid teacher data" });
+    }
+  });
+
+  app.put("/api/teachers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const teacherData = insertTeacherSchema.partial().parse(req.body);
+      const teacher = await storage.updateTeacher(id, teacherData);
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+      res.json(teacher);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid teacher data" });
+    }
+  });
+
+  app.delete("/api/teachers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteTeacher(id);
+      res.json({ message: "Teacher deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete teacher" });
     }
   });
 
