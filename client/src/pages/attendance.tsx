@@ -11,6 +11,7 @@ import { exportAttendanceData } from "@/lib/api";
 import { getAuthState } from "@/lib/auth";
 import { Check, Clock, X, Download, Search } from "lucide-react";
 import { format } from "date-fns";
+import { Teacher } from "@shared/schema";
 
 interface AttendanceRecord {
   id: number;
@@ -34,7 +35,7 @@ export default function Attendance() {
   const queryClient = useQueryClient();
   const user = getAuthState().user;
 
-  const { data: teachers = [] } = useQuery({
+  const { data: teachers = [] } = useQuery<Teacher[]>({
     queryKey: ['/api/teachers'],
   });
 

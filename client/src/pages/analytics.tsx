@@ -22,7 +22,7 @@ import {
 import { exportAttendanceData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Download } from "lucide-react";
-import { format, subDays } from "date-fns";
+import { format as formatDate, subDays } from "date-fns";
 
 const COLORS = ['hsl(var(--primary))', '#10B981', '#F59E0B', '#EF4444'];
 
@@ -52,8 +52,8 @@ export default function Analytics() {
 
   const handleExport = async (exportFormat: 'csv' | 'pdf') => {
     try {
-      const endDate = format(new Date(), 'yyyy-MM-dd');
-      const startDate = format(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
+      const endDate = formatDate(new Date(), 'yyyy-MM-dd');
+      const startDate = formatDate(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
       
       await exportAttendanceData({
         format: exportFormat,
@@ -76,7 +76,7 @@ export default function Analytics() {
   };
 
   const monthlyTrendData = trends?.map((trend: any) => ({
-    date: format(new Date(trend.date), 'MMM dd'),
+    date: formatDate(new Date(trend.date), 'MMM dd'),
     attendance: Math.round(((trend.present + trend.halfDay * 0.5) / (trend.present + trend.absent + trend.halfDay)) * 100) || 0,
     present: trend.present,
     absent: trend.absent,
@@ -108,10 +108,10 @@ export default function Analytics() {
     color: COLORS[index % COLORS.length],
   })) || [];
 
-  const departments = [...new Set(teachers?.map((t: any) => t.department) || [])];
-  const filteredTeachers = teachers?.filter((t: any) => 
+  const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
+  const filteredTeachers = teachers.filter((t: any) => 
     !selectedDepartment || selectedDepartment === 'all' || t.department === selectedDepartment
-  ) || [];
+  );
 
   return (
     <div className="space-y-6">
