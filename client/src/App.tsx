@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import Attendance from "@/pages/attendance";
 import Analytics from "@/pages/analytics";
 import Teachers from "@/pages/teachers";
+import ManageTeachers from "@/pages/manage-teachers";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
@@ -23,6 +24,7 @@ function AuthenticatedApp() {
           <Route path="/attendance" component={Attendance} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/teachers" component={Teachers} />
+          <Route path="/manage-teachers" component={ManageTeachers} />
           <Route path="/" component={Dashboard} />
           <Route component={NotFound} />
         </Switch>

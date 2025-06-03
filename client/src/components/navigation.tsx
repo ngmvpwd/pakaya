@@ -9,15 +9,34 @@ import {
   Users, 
   Menu, 
   LogOut,
-  GraduationCap
+  GraduationCap,
+  UserPlus,
+  Settings
 } from "lucide-react";
 
-const navigationItems = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/attendance", label: "Mark Attendance", icon: ClipboardCheck },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/teachers", label: "Teachers", icon: Users },
-];
+interface NavigationItem {
+  href: string;
+  label: string;
+  icon: any;
+}
+
+const getNavigationItems = (userRole: string): NavigationItem[] => {
+  const baseItems: NavigationItem[] = [
+    { href: "/attendance", label: "Mark Attendance", icon: ClipboardCheck },
+  ];
+
+  if (userRole === 'admin') {
+    return [
+      { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+      ...baseItems,
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/teachers", label: "Teacher Profiles", icon: Users },
+      { href: "/manage-teachers", label: "Manage Teachers", icon: UserPlus },
+    ];
+  }
+
+  return baseItems;
+};
 
 export function Navigation() {
   const [location] = useLocation();
@@ -34,6 +53,8 @@ export function Navigation() {
   const handleLogout = () => {
     logout();
   };
+
+  const navigationItems = getNavigationItems(user?.role || 'dataentry');
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">

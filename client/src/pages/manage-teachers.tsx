@@ -1,0 +1,385 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Trash2, Edit, Plus, Search } from "lucide-react";
+import { Teacher, InsertTeacher } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const teacherFormSchema = z.object({
+  teacherId: z.string().min(1, "Teacher ID is required"),
+  name: z.string().min(1, "Name is required"),
+  department: z.string().min(1, "Department is required"),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  joinDate: z.string().optional().or(z.literal(""))
+});
+
+type TeacherForm = z.infer<typeof teacherFormSchema>;
+
+export default function ManageTeachers() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: teachers = [], isLoading } = useQuery({
+    queryKey: ['/api/teachers'],
+  });
+
+  const form = useForm<TeacherForm>({
+    resolver: zodResolver(teacherFormSchema),
+    defaultValues: {
+      teacherId: "",
+      name: "",
+      department: "",
+      email: "",
+      phone: "",
+      joinDate: ""
+    }
+  });
+
+  const createTeacherMutation = useMutation({
+    mutationFn: async (data: InsertTeacher) => {
+      return apiRequest('POST', '/api/teachers', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });
+      setIsAddDialogOpen(false);
+      setEditingTeacher(null);
+      form.reset();
+      toast({
+        title: "Success",
+        description: "Teacher created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create teacher",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateTeacherMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertTeacher> }) => {
+      return apiRequest('PUT', `/api/teachers/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });
+      setIsAddDialogOpen(false);
+      setEditingTeacher(null);
+      form.reset();
+      toast({
+        title: "Success",
+        description: "Teacher updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update teacher",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteTeacherMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/teachers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });
+      toast({
+        title: "Success",
+        description: "Teacher deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete teacher",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const filteredTeachers = teachers.filter((teacher: Teacher) =>
+    teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    teacher.teacherId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    teacher.department.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSubmit = (data: TeacherForm) => {
+    if (editingTeacher) {
+      updateTeacherMutation.mutate({
+        id: editingTeacher.id,
+        data: {
+          ...data,
+          email: data.email || null,
+          phone: data.phone || null,
+          joinDate: data.joinDate || null
+        }
+      });
+    } else {
+      createTeacherMutation.mutate({
+        ...data,
+        email: data.email || null,
+        phone: data.phone || null,
+        joinDate: data.joinDate || null
+      });
+    }
+  };
+
+  const handleEdit = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    form.reset({
+      teacherId: teacher.teacherId,
+      name: teacher.name,
+      department: teacher.department,
+      email: teacher.email || "",
+      phone: teacher.phone || "",
+      joinDate: teacher.joinDate || ""
+    });
+    setIsAddDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingTeacher(null);
+    form.reset();
+    setIsAddDialogOpen(true);
+  };
+
+  const handleDelete = (teacher: Teacher) => {
+    if (confirm(`Are you sure you want to delete ${teacher.name}? This action cannot be undone.`)) {
+      deleteTeacherMutation.mutate(teacher.id);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">Manage Teachers</h2>
+          <p className="text-gray-600 mt-2">Add, edit, and remove teacher records</p>
+        </div>
+        <Button onClick={handleAdd} className="mt-4 sm:mt-0">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Teacher
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <CardTitle>Teachers ({filteredTeachers.length})</CardTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search teachers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full sm:w-80"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">Loading teachers...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Teacher ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Department
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Join Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredTeachers.map((teacher: Teacher) => (
+                    <tr key={teacher.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {teacher.teacherId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {teacher.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant="secondary">{teacher.department}</Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>
+                          {teacher.email && <div>{teacher.email}</div>}
+                          {teacher.phone && <div>{teacher.phone}</div>}
+                          {!teacher.email && !teacher.phone && <span className="text-gray-400">-</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {teacher.joinDate || <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(teacher)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-600 hover:bg-red-50"
+                          onClick={() => handleDelete(teacher)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredTeachers.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                        No teachers found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTeacher ? "Edit Teacher" : "Add New Teacher"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="teacherId">Teacher ID *</Label>
+                <Input
+                  id="teacherId"
+                  {...form.register("teacherId")}
+                  placeholder="T001"
+                />
+                {form.formState.errors.teacherId && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {form.formState.errors.teacherId.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  {...form.register("name")}
+                  placeholder="John Doe"
+                />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {form.formState.errors.name.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="department">Department *</Label>
+              <Input
+                id="department"
+                {...form.register("department")}
+                placeholder="Mathematics"
+              />
+              {form.formState.errors.department && (
+                <p className="text-sm text-red-600 mt-1">
+                  {form.formState.errors.department.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...form.register("email")}
+                  placeholder="john@school.edu"
+                />
+                {form.formState.errors.email && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {form.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  {...form.register("phone")}
+                  placeholder="+1234567890"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="joinDate">Join Date</Label>
+              <Input
+                id="joinDate"
+                type="date"
+                {...form.register("joinDate")}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createTeacherMutation.isPending || updateTeacherMutation.isPending}
+              >
+                {editingTeacher ? "Update" : "Create"} Teacher
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
