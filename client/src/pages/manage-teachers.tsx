@@ -288,33 +288,18 @@ export default function ManageTeachers() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="teacherId">Teacher ID *</Label>
-                <Input
-                  id="teacherId"
-                  {...form.register("teacherId")}
-                  placeholder="T001"
-                />
-                {form.formState.errors.teacherId && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {form.formState.errors.teacherId.message}
-                  </p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  {...form.register("name")}
-                  placeholder="John Doe"
-                />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {form.formState.errors.name.message}
-                  </p>
-                )}
-              </div>
+            <div>
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                {...form.register("name")}
+                placeholder="John Doe"
+              />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-600 mt-1">
+                  {form.formState.errors.name.message}
+                </p>
+              )}
             </div>
 
             <div>
