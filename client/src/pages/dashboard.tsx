@@ -126,6 +126,20 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <div className="text-2xl font-bold text-gray-900">{stats?.shortLeaveToday || 0}</div>
+                <div className="text-sm text-gray-600">Short Leave</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                 <TrendingUp className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">

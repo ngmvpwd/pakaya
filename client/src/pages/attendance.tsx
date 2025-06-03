@@ -18,9 +18,10 @@ interface AttendanceRecord {
   id: number;
   teacherId: number;
   date: string;
-  status: 'present' | 'absent' | 'half_day';
-  absentCategory?: 'official_leave' | 'irregular_leave' | 'sick_leave';
+  status: 'present' | 'absent' | 'half_day' | 'short_leave';
+  absentCategory?: 'official_leave' | 'private_leave' | 'sick_leave';
   checkInTime?: string;
+  checkOutTime?: string;
   teacher: {
     id: number;
     name: string;
@@ -187,6 +188,8 @@ export default function Attendance() {
         return <Badge className="bg-green-100 text-green-800">Present</Badge>;
       case 'half_day':
         return <Badge className="bg-yellow-100 text-yellow-800">Half Day</Badge>;
+      case 'short_leave':
+        return <Badge className="bg-blue-100 text-blue-800">Short Leave</Badge>;
       case 'absent':
         const categoryText = record?.absentCategory 
           ? ` (${record.absentCategory.replace('_', ' ')})`
@@ -374,6 +377,19 @@ export default function Attendance() {
                               disabled={updateAttendanceMutation.isPending}
                             >
                               <Clock className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                              onClick={() => updateAttendanceMutation.mutate({ 
+                                teacherId: teacher.id, 
+                                status: 'short_leave' 
+                              })}
+                              disabled={updateAttendanceMutation.isPending}
+                              title="Short Leave"
+                            >
+                              SL
                             </Button>
                             <Button
                               size="sm"
