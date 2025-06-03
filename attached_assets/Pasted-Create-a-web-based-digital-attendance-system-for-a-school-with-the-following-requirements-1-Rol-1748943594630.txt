@@ -1,0 +1,41 @@
+Create a web-based digital attendance system for a school with the following requirements:
+
+1. **Role-based Access:**
+   - Admin panel for school administration to monitor teacher attendance.
+   - Data entry panel for two designated staff members to enter teacher attendance daily.
+   - Use pre-set login details without authentication mechanisms (e.g., hardcoded usernames and passwords stored locally).
+     - Admin Login: Username: "admin", Password: "admin123"
+     - Data Entry Login: Username: "dataentry", Password: "data123"
+
+2. **Attendance Input Features:**
+   - Simple, user-friendly UI for quickly marking attendance for 60 teachers.
+   - Option to input attendance in bulk or one-by-one.
+
+3. **Data Visualization:**
+   - Charts and graphs (e.g., bar charts, pie charts, line graphs) to analyze attendance trends over time.
+   - Filters for specific teachers, time ranges, and attendance types (e.g., full-day, half-day).
+   - Individual teacher analysis to view attendance patterns for a single teacher.
+
+4. **Notifications and Alerts:**
+   - Alert admin for irregular attendance patterns or prolonged absences.
+
+5. **UI/UX Standards:**
+   - Intuitive, clean, and responsive design suitable for desktop and mobile.
+   - Clear navigation for different user roles and tasks.
+
+6. **Database Requirements:**
+   - Use a local SQLite database to store attendance data, teacher records, and login details.
+   - Include predefined schema and sample data for login credentials and teacher records.
+
+7. **Tech Stack:**
+   - Use React.js for the front end.
+   - Backend can be Node.js or Python Flask for SQLite database integration.
+
+8. **Additional Features:**
+   - Export attendance data as CSV or PDF.
+   - Ensure easy-to-understand code for maintainability.
+
+Generate the complete codebase for this system, including:
+- A fully styled frontend.
+- Backend APIs for handling attendance, role-based access, and individual teacher analysis.
+- SQLite database setup with predefined schema and sample data.
