@@ -37,11 +37,30 @@ export interface IStorage {
     presentToday: number;
     absentToday: number;
     halfDayToday: number;
+    shortLeaveToday: number;
     attendanceRate: number;
   }>;
-  getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>>;
-  getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>>;
+  getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>>;
+  getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>>;
   getDepartmentStats(): Promise<Array<{ department: string; attendanceRate: number; teacherCount: number }>>;
+  getTeacherAbsenceTotals(teacherId: number, startDate?: string, endDate?: string): Promise<{
+    totalAbsences: number;
+    officialLeave: number;
+    privateLeave: number;
+    sickLeave: number;
+    shortLeave: number;
+  }>;
+  getAttendanceExportData(startDate?: string, endDate?: string): Promise<Array<{
+    teacherId: string;
+    teacherName: string;
+    department: string;
+    totalAbsences: number;
+    officialLeave: number;
+    privateLeave: number;
+    sickLeave: number;
+    shortLeave: number;
+    attendanceRate: number;
+  }>>;
   
   // Alert methods
   getAlerts(limit?: number): Promise<(Alert & { teacher: Teacher })[]>;
@@ -216,6 +235,7 @@ export class DatabaseStorage implements IStorage {
     presentToday: number;
     absentToday: number;
     halfDayToday: number;
+    shortLeaveToday: number;
     attendanceRate: number;
   }> {
     const today = new Date().toISOString().split('T')[0];
@@ -237,6 +257,7 @@ export class DatabaseStorage implements IStorage {
       presentToday: 0,
       absentToday: 0,
       halfDayToday: 0,
+      shortLeaveToday: 0,
       attendanceRate: 0,
     };
 
@@ -251,18 +272,21 @@ export class DatabaseStorage implements IStorage {
         case 'half_day':
           stats.halfDayToday = stat.count;
           break;
+        case 'short_leave':
+          stats.shortLeaveToday = stat.count;
+          break;
       }
     });
 
     // Calculate attendance rate based on total teachers, not just recorded attendance
     if (stats.totalTeachers > 0) {
-      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5) / stats.totalTeachers) * 100 * 10) / 10;
+      stats.attendanceRate = Math.round(((stats.presentToday + stats.halfDayToday * 0.5 + stats.shortLeaveToday * 0.8) / stats.totalTeachers) * 100 * 10) / 10;
     }
 
     return stats;
   }
 
-  async getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number }>> {
+  async getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     const startDateStr = startDate.toISOString().split('T')[0];
@@ -278,7 +302,7 @@ export class DatabaseStorage implements IStorage {
       .groupBy(attendanceRecords.date, attendanceRecords.status)
       .orderBy(asc(attendanceRecords.date));
 
-    const trendsMap = new Map<string, { present: number; absent: number; halfDay: number }>();
+    const trendsMap = new Map<string, { present: number; absent: number; halfDay: number; shortLeave: number }>();
     
     result.forEach(row => {
       if (!trendsMap.has(row.date)) {

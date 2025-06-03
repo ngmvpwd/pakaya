@@ -32,9 +32,10 @@ export const attendanceRecords = pgTable("attendance_records", {
   id: serial("id").primaryKey(),
   teacherId: integer("teacher_id").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD format
-  status: text("status").notNull(), // 'present', 'absent', 'half_day'
-  absentCategory: text("absent_category"), // 'official_leave', 'irregular_leave', 'sick_leave' (required when status is 'absent')
+  status: text("status").notNull(), // 'present', 'absent', 'half_day', 'short_leave'
+  absentCategory: text("absent_category"), // 'official_leave', 'private_leave', 'sick_leave' (required when status is 'absent')
   checkInTime: text("check_in_time"),
+  checkOutTime: text("check_out_time"), // For short leave tracking
   notes: text("notes"),
   recordedBy: integer("recorded_by").notNull(), // user id who recorded
   createdAt: timestamp("created_at").defaultNow(),
