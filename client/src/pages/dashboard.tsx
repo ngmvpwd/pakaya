@@ -29,7 +29,7 @@ import { format } from "date-fns";
 export default function Dashboard() {
   const [, setLocation] = useLocation();
 
-  const { data: stats } = useQuery({
+  const { data: stats = {} } = useQuery<any>({
     queryKey: ['/api/stats/overview'],
   });
 
@@ -66,10 +66,20 @@ export default function Dashboard() {
     }
   };
 
-  const chartData = trends?.map((trend: any) => ({
-    date: format(new Date(trend.date), 'MMM dd'),
-    attendance: Math.round(((trend.present + trend.halfDay * 0.5) / (trend.present + trend.absent + trend.halfDay)) * 100)
-  })) || [];
+  const chartData = trends?.map((trend: any) => {
+    const totalTeachers = parseInt(trend.present) + parseInt(trend.absent) + parseInt(trend.halfDay) + parseInt(trend.shortLeave);
+    const effectivePresent = parseInt(trend.present) + (parseInt(trend.halfDay) * 0.5) + (parseInt(trend.shortLeave) * 0.75);
+    const attendanceRate = totalTeachers > 0 ? Math.round((effectivePresent / totalTeachers) * 100) : 0;
+    
+    return {
+      date: format(new Date(trend.date), 'MMM dd'),
+      attendance: attendanceRate,
+      present: parseInt(trend.present),
+      absent: parseInt(trend.absent),
+      halfDay: parseInt(trend.halfDay),
+      shortLeave: parseInt(trend.shortLeave),
+    };
+  }) || [];
 
   return (
     <div className="space-y-8">

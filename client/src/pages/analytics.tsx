@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,13 +19,15 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  AreaChart,
+  Area,
 } from "recharts";
 import { exportAttendanceData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Download, Search, Calendar, CalendarDays } from "lucide-react";
+import { FileText, Download, Search, TrendingUp, Users, Calendar } from "lucide-react";
 import { format as formatDate, subDays, parseISO } from "date-fns";
 
-const COLORS = ['hsl(var(--primary))', '#10B981', '#F59E0B', '#EF4444'];
+const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');
@@ -34,11 +35,9 @@ export default function Analytics() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [selectedTeacher, setSelectedTeacher] = useState('');
-  const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const { toast } = useToast();
 
-  const { data: trends } = useQuery({
+  const { data: trends = [] } = useQuery({
     queryKey: ['/api/stats/trends', dateRange, customDateRange, startDate, endDate],
     queryFn: () => {
       if (customDateRange && startDate && endDate) {
@@ -46,7 +45,7 @@ export default function Analytics() {
       }
       return fetch(`/api/stats/trends?days=${dateRange}`).then(res => res.json());
     },
-    refetchInterval: 30000, // Real-time updates every 30 seconds
+    enabled: !customDateRange || (customDateRange && !!startDate && !!endDate),
   });
 
   const { data: absentAnalytics } = useQuery({
@@ -57,7 +56,7 @@ export default function Analytics() {
       }
       return fetch('/api/analytics/absent').then(res => res.json());
     },
-    refetchInterval: 30000,
+    enabled: !customDateRange || (customDateRange && !!startDate && !!endDate),
   });
 
   const { data: departmentStats = [] } = useQuery<any[]>({
@@ -66,7 +65,7 @@ export default function Analytics() {
 
   const { data: topPerformers = [] } = useQuery<any[]>({
     queryKey: ['/api/stats/top-performers'],
-    queryFn: () => fetch('/api/stats/top-performers?limit=5').then(res => res.json()),
+    queryFn: () => fetch('/api/stats/top-performers?limit=10').then(res => res.json()),
   });
 
   const { data: teachers = [] } = useQuery<any[]>({
@@ -75,14 +74,13 @@ export default function Analytics() {
 
   const handleExport = async (exportFormat: 'csv' | 'pdf') => {
     try {
-      const endDate = formatDate(new Date(), 'yyyy-MM-dd');
-      const startDate = formatDate(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
+      const endDateForExport = customDateRange ? endDate : formatDate(new Date(), 'yyyy-MM-dd');
+      const startDateForExport = customDateRange ? startDate : formatDate(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
       
       await exportAttendanceData({
         format: exportFormat,
-        startDate,
-        endDate,
-        ...(selectedTeacher && { teacherId: parseInt(selectedTeacher) }),
+        startDate: startDateForExport,
+        endDate: endDateForExport,
       });
       
       toast({
@@ -98,72 +96,81 @@ export default function Analytics() {
     }
   };
 
-  const monthlyTrendData = trends?.map((trend: any) => ({
-    date: formatDate(new Date(trend.date), 'MMM dd'),
-    attendance: Math.round(((trend.present + trend.halfDay * 0.5) / (trend.present + trend.absent + trend.halfDay)) * 100) || 0,
-    present: trend.present,
-    absent: trend.absent,
-    halfDay: trend.halfDay,
-  })) || [];
+  // Process attendance trend data with proper calculations
+  const attendanceTrendData = trends.map((trend: any) => {
+    const totalTeachers = parseInt(trend.present) + parseInt(trend.absent) + parseInt(trend.halfDay) + parseInt(trend.shortLeave);
+    const effectivePresent = parseInt(trend.present) + (parseInt(trend.halfDay) * 0.5) + (parseInt(trend.shortLeave) * 0.75);
+    const attendanceRate = totalTeachers > 0 ? Math.round((effectivePresent / totalTeachers) * 100) : 0;
+    
+    return {
+      date: formatDate(new Date(trend.date), 'MMM dd'),
+      fullDate: trend.date,
+      attendanceRate,
+      present: parseInt(trend.present),
+      absent: parseInt(trend.absent),
+      halfDay: parseInt(trend.halfDay),
+      shortLeave: parseInt(trend.shortLeave),
+      total: totalTeachers,
+    };
+  });
 
-  const departmentChartData = departmentStats?.map((dept: any) => ({
-    name: dept.department,
-    attendance: dept.attendanceRate,
-    teachers: dept.teacherCount,
-  })) || [];
+  // Department statistics with proper attendance rate calculation
+  const departmentChartData = departmentStats.map((dept: any) => ({
+    name: dept.department.length > 12 ? dept.department.substring(0, 12) + '...' : dept.department,
+    fullName: dept.department,
+    attendanceRate: Math.round(dept.attendanceRate),
+    teacherCount: dept.teacherCount,
+  }));
 
-  const pieData = trends?.reduce((acc: any, trend: any) => {
-    acc.present += trend.present;
-    acc.halfDay += trend.halfDay;
-    acc.absent += trend.absent;
+  // Overall attendance distribution
+  const totalStats = trends.reduce((acc: any, trend: any) => {
+    acc.present += parseInt(trend.present) || 0;
+    acc.absent += parseInt(trend.absent) || 0;
+    acc.halfDay += parseInt(trend.halfDay) || 0;
+    acc.shortLeave += parseInt(trend.shortLeave) || 0;
     return acc;
-  }, { present: 0, halfDay: 0, absent: 0 });
+  }, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
 
-  const distributionData = pieData ? [
-    { name: 'Present', value: pieData.present, color: COLORS[1] },
-    { name: 'Half Day', value: pieData.halfDay, color: COLORS[2] },
-    { name: 'Absent', value: pieData.absent, color: COLORS[3] },
-  ] : [];
+  const distributionData = [
+    { name: 'Present', value: totalStats.present, color: COLORS[0] },
+    { name: 'Half Day', value: totalStats.halfDay, color: COLORS[2] },
+    { name: 'Short Leave', value: totalStats.shortLeave, color: COLORS[1] },
+    { name: 'Absent', value: totalStats.absent, color: COLORS[3] },
+  ].filter(item => item.value > 0);
 
+  // Absence category analysis
   const absentCategoryData = absentAnalytics ? [
-    { name: 'Official Leave', value: absentAnalytics.officialLeave, color: COLORS[0] },
-    { name: 'Irregular Leave', value: absentAnalytics.irregularLeave, color: COLORS[1] },
-    { name: 'Sick Leave', value: absentAnalytics.sickLeave, color: COLORS[2] },
+    { name: 'Official Leave', value: parseInt(absentAnalytics.officialLeave) || 0, color: COLORS[0] },
+    { name: 'Sick Leave', value: parseInt(absentAnalytics.sickLeave) || 0, color: COLORS[2] },
+    { name: 'Private Leave', value: parseInt(absentAnalytics.irregularLeave) || 0, color: COLORS[3] },
   ].filter(item => item.value > 0) : [];
 
-  const departmentPieData = departmentStats?.map((dept: any, index: number) => ({
-    name: dept.department,
-    value: dept.teacherCount,
-    color: COLORS[index % COLORS.length],
-  })) || [];
+  // Weekly performance data
+  const weeklyData = attendanceTrendData.slice(-7).map((day: any, index: number) => ({
+    day: formatDate(new Date(day.fullDate), 'EEE'),
+    rate: day.attendanceRate,
+    present: day.present,
+    total: day.total,
+  }));
 
   const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
-  const filteredTeachers = teachers.filter((t: any) => {
-    const matchesDepartment = !selectedDepartment || selectedDepartment === 'all' || t.department === selectedDepartment;
-    const matchesSearch = !teacherSearchTerm || 
-      t.name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
-      t.teacherId.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
-      t.department.toLowerCase().includes(teacherSearchTerm.toLowerCase());
-    return matchesDepartment && matchesSearch;
-  });
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-gray-900">Analytics & Reports</h2>
-        <p className="text-gray-600 mt-2">Detailed attendance analysis and trends</p>
+        <p className="text-gray-600 mt-2">Comprehensive attendance analysis and insights</p>
       </div>
 
-      {/* Filters */}
+      {/* Controls */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+              <Label>Date Range</Label>
               <Select value={customDateRange ? 'custom' : dateRange} onValueChange={(value) => {
                 if (value === 'custom') {
                   setCustomDateRange(true);
-                  setDateRange('30');
                 } else {
                   setCustomDateRange(false);
                   setDateRange(value);
@@ -176,8 +183,6 @@ export default function Analytics() {
                   <SelectItem value="7">Last 7 days</SelectItem>
                   <SelectItem value="30">Last 30 days</SelectItem>
                   <SelectItem value="90">Last 3 months</SelectItem>
-                  <SelectItem value="180">Last 6 months</SelectItem>
-                  <SelectItem value="365">Last year</SelectItem>
                   <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
@@ -186,18 +191,16 @@ export default function Analytics() {
             {customDateRange && (
               <>
                 <div>
-                  <Label htmlFor="startDate">Start Date</Label>
+                  <Label>Start Date</Label>
                   <Input
-                    id="startDate"
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="endDate">End Date</Label>
+                  <Label>End Date</Label>
                   <Input
-                    id="endDate"
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
@@ -205,68 +208,13 @@ export default function Analytics() {
                 </div>
               </>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((dept: string) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search Teachers</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by name, ID..."
-                  value={teacherSearchTerm}
-                  onChange={(e) => setTeacherSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Teacher</label>
-              <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Teachers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Teachers</SelectItem>
-                  {filteredTeachers
-                    .sort((a: any, b: any) => a.name.localeCompare(b.name))
-                    .map((teacher: any) => (
-                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                      {teacher.name} ({teacher.teacherId}) - {teacher.department}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2 flex items-end space-x-2">
-              <Button 
-                className="flex-1"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleExport('csv');
-                }}
-              >
+            
+            <div className="flex items-end space-x-2">
+              <Button onClick={() => handleExport('csv')} className="flex-1">
                 <Download className="mr-2 h-4 w-4" />
                 Export CSV
               </Button>
-              <Button 
-                variant="outline"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleExport('pdf');
-                }}
-              >
+              <Button variant="outline" onClick={() => handleExport('pdf')}>
                 <FileText className="mr-2 h-4 w-4" />
                 PDF
               </Button>
@@ -275,27 +223,118 @@ export default function Analytics() {
         </CardContent>
       </Card>
 
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <div className="text-2xl font-bold text-gray-900">
+                  {attendanceTrendData.length > 0 ? 
+                    Math.round(attendanceTrendData.reduce((sum: number, day: any) => sum + day.attendanceRate, 0) / attendanceTrendData.length) 
+                    : 0}%
+                </div>
+                <div className="text-sm text-gray-600">Average Attendance</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <div className="text-2xl font-bold text-gray-900">{teachers.length}</div>
+                <div className="text-sm text-gray-600">Total Teachers</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <div className="text-2xl font-bold text-gray-900">{trends.length}</div>
+                <div className="text-sm text-gray-600">Days Analyzed</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <div className="text-2xl font-bold text-gray-900">
+                  {absentAnalytics ? parseInt(absentAnalytics.totalAbsent) || 0 : 0}
+                </div>
+                <div className="text-sm text-gray-600">Total Absences</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trend */}
+        {/* Attendance Trend Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Daily Attendance Rate Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={attendanceTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[70, 100]} />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    name === 'attendanceRate' ? `${value}%` : value,
+                    name === 'attendanceRate' ? 'Attendance Rate' : name
+                  ]}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="attendanceRate" 
+                  stroke={COLORS[0]} 
+                  fill={COLORS[0]}
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Weekly Performance */}
         <Card>
           <CardHeader>
-            <CardTitle>Attendance Trend</CardTitle>
+            <CardTitle>This Week Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={monthlyTrendData}>
+              <BarChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="day" />
                 <YAxis domain={[0, 100]} />
                 <Tooltip formatter={(value) => [`${value}%`, 'Attendance Rate']} />
-                <Line 
-                  type="monotone" 
-                  dataKey="attendance" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                />
-              </LineChart>
+                <Bar dataKey="rate" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -303,16 +342,23 @@ export default function Analytics() {
         {/* Department Comparison */}
         <Card>
           <CardHeader>
-            <CardTitle>Department-wise Attendance</CardTitle>
+            <CardTitle>Department Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={departmentChartData}>
+              <BarChart data={departmentChartData} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis domain={[0, 100]} />
-                <Tooltip formatter={(value) => [`${value}%`, 'Attendance Rate']} />
-                <Bar dataKey="attendance" fill="hsl(var(--primary))" />
+                <XAxis type="number" domain={[70, 100]} />
+                <YAxis type="category" dataKey="name" width={80} />
+                <Tooltip 
+                  formatter={(value, name, props) => [
+                    `${value}%`, 
+                    'Attendance Rate',
+                    `Department: ${props.payload.fullName}`,
+                    `Teachers: ${props.payload.teacherCount}`
+                  ]}
+                />
+                <Bar dataKey="attendanceRate" fill={COLORS[2]} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -321,7 +367,7 @@ export default function Analytics() {
         {/* Attendance Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Attendance Distribution</CardTitle>
+            <CardTitle>Overall Attendance Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -331,25 +377,24 @@ export default function Analytics() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
                   outerRadius={80}
-                  fill="#8884d8"
                   dataKey="value"
                 >
                   {distributionData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => [value, 'Count']} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Absent Categories Analysis */}
+        {/* Absence Categories */}
         <Card>
           <CardHeader>
-            <CardTitle>Absent Categories Analysis</CardTitle>
+            <CardTitle>Absence Categories</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -359,45 +404,15 @@ export default function Analytics() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                  label={({ name, value, percent }) => `${name}: ${value}`}
                   outerRadius={80}
-                  fill="#8884d8"
                   dataKey="value"
                 >
                   {absentCategoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [`${value} absences`, 'Count']} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Department Distribution Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Teachers by Department</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={departmentPieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {departmentPieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} teachers`, 'Count']} />
+                <Tooltip formatter={(value) => [value, 'Absences']} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -405,7 +420,7 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {/* Top Performers Section */}
+      {/* Top Performers */}
       <Card>
         <CardHeader>
           <CardTitle>Top Performing Teachers</CardTitle>
@@ -413,67 +428,32 @@ export default function Analytics() {
         <CardContent>
           {topPerformers && topPerformers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {topPerformers.map((performer: any, index: number) => (
-                <div key={performer.teacher.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              {topPerformers.slice(0, 6).map((performer: any, index: number) => (
+                <div key={performer.teacher.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                      index === 0 ? 'bg-yellow-500' : 
-                      index === 1 ? 'bg-gray-400' : 
-                      index === 2 ? 'bg-amber-600' : 'bg-blue-500'
-                    }`}>
-                      {index + 1}
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <span className="text-green-700 font-bold text-sm">#{index + 1}</span>
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">{performer.teacher.name}</div>
                       <div className="text-sm text-gray-600">{performer.teacher.department}</div>
+                      <div className="text-sm text-gray-500">ID: {performer.teacher.teacherId}</div>
                     </div>
                   </div>
-                  <Badge className={
-                    performer.attendanceRate >= 95 ? "bg-green-100 text-green-800" :
-                    performer.attendanceRate >= 90 ? "bg-blue-100 text-blue-800" :
-                    "bg-gray-100 text-gray-800"
-                  }>
-                    {performer.attendanceRate}%
-                  </Badge>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-green-600">
+                      {Math.round(performer.attendanceRate)}%
+                    </div>
+                    <div className="text-xs text-gray-500">Attendance</div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No attendance data available for analysis</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Export Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Export Reports</CardTitle>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => handleExport('csv')}
-                className="text-green-600 border-green-600 hover:bg-green-50"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleExport('pdf')}
-                className="text-red-600 border-red-600 hover:bg-red-50"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export PDF
-              </Button>
+            <div className="text-center py-8 text-gray-500">
+              No performance data available
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600">
-            Export detailed attendance reports with the current filters applied. 
-            CSV format is suitable for spreadsheet analysis, while PDF format is perfect for formal reporting.
-          </p>
+          )}
         </CardContent>
       </Card>
     </div>
