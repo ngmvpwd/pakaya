@@ -51,6 +51,18 @@ export interface IStorage {
   // Analytics methods
   getTeacherAttendancePattern(teacherId: number, weeks: number): Promise<Array<{ week: string; rate: number }>>;
   getTopPerformingTeachers(limit: number): Promise<Array<{ teacher: Teacher; attendanceRate: number }>>;
+  getAbsentAnalytics(startDate?: string, endDate?: string): Promise<{
+    totalAbsent: number;
+    officialLeave: number;
+    irregularLeave: number;
+    sickLeave: number;
+    categorizedAbsences: Array<{ date: string; category: string; count: number }>;
+  }>;
+  getTeacherAbsentPattern(teacherId: number, startDate?: string, endDate?: string): Promise<Array<{
+    date: string;
+    status: string;
+    category?: string;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {

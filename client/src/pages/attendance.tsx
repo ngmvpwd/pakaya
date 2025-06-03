@@ -159,14 +159,35 @@ export default function Attendance() {
     return attendance.find((a: AttendanceRecord) => a.teacherId === teacherId);
   };
 
-  const getStatusBadge = (status?: string) => {
+  const handleAbsentWithCategory = () => {
+    if (selectedTeacher) {
+      updateAttendanceMutation.mutate({
+        teacherId: selectedTeacher,
+        status: 'absent',
+        absentCategory: selectedAbsentCategory
+      });
+      setAbsentDialogOpen(false);
+      setSelectedTeacher(null);
+    }
+  };
+
+  const handleMarkAbsent = (teacherId: number) => {
+    setSelectedTeacher(teacherId);
+    setAbsentDialogOpen(true);
+  };
+
+  const getStatusBadge = (record?: AttendanceRecord) => {
+    const status = record?.status;
     switch (status) {
       case 'present':
         return <Badge className="bg-green-100 text-green-800">Present</Badge>;
       case 'half_day':
         return <Badge className="bg-yellow-100 text-yellow-800">Half Day</Badge>;
       case 'absent':
-        return <Badge className="bg-red-100 text-red-800">Absent</Badge>;
+        const categoryText = record?.absentCategory 
+          ? ` (${record.absentCategory.replace('_', ' ')})`
+          : '';
+        return <Badge className="bg-red-100 text-red-800">Absent{categoryText}</Badge>;
       default:
         return <Badge variant="outline">Not Marked</Badge>;
     }
@@ -319,7 +340,7 @@ export default function Attendance() {
                           {teacher.department}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(teacherAttendance?.status)}
+                          {getStatusBadge(teacherAttendance)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {teacherAttendance?.checkInTime || '--'}
@@ -354,14 +375,26 @@ export default function Attendance() {
                               size="sm"
                               variant="outline"
                               className="text-red-600 border-red-600 hover:bg-red-50"
-                              onClick={() => updateAttendanceMutation.mutate({ 
-                                teacherId: teacher.id, 
-                                status: 'absent' 
-                              })}
+                              onClick={() => handleMarkAbsent(teacher.id)}
                               disabled={updateAttendanceMutation.isPending}
                             >
                               <X className="h-3 w-3" />
                             </Button>
+                            {teacherAttendance && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                onClick={() => {
+                                  setSelectedTeacher(teacher.id);
+                                  setSelectedAbsentCategory(teacherAttendance.absentCategory || 'official_leave');
+                                  setAbsentDialogOpen(true);
+                                }}
+                                disabled={updateAttendanceMutation.isPending}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -373,6 +406,43 @@ export default function Attendance() {
           )}
         </CardContent>
       </Card>
+
+      {/* Absent Category Selection Dialog */}
+      <Dialog open={absentDialogOpen} onOpenChange={setAbsentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Absent Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Absent Category</label>
+              <Select 
+                value={selectedAbsentCategory} 
+                onValueChange={(value: 'official_leave' | 'irregular_leave' | 'sick_leave') => 
+                  setSelectedAbsentCategory(value)
+                }
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="official_leave">Official Leave</SelectItem>
+                  <SelectItem value="irregular_leave">Irregular Leave</SelectItem>
+                  <SelectItem value="sick_leave">Sick Leave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setAbsentDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAbsentWithCategory} disabled={updateAttendanceMutation.isPending}>
+                {updateAttendanceMutation.isPending ? 'Updating...' : 'Mark Absent'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
