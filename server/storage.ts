@@ -427,21 +427,22 @@ export class DatabaseStorage implements IStorage {
     };
 
     result.forEach(row => {
+      const count = parseInt(row.count.toString()) || 0;
       if (row.status === 'absent') {
-        totals.totalAbsences += row.count;
+        totals.totalAbsences += count;
         switch (row.absentCategory) {
           case 'official_leave':
-            totals.officialLeave += row.count;
+            totals.officialLeave += count;
             break;
           case 'private_leave':
-            totals.privateLeave += row.count;
+            totals.privateLeave += count;
             break;
           case 'sick_leave':
-            totals.sickLeave += row.count;
+            totals.sickLeave += count;
             break;
         }
       } else if (row.status === 'short_leave') {
-        totals.shortLeave += row.count;
+        totals.shortLeave += count;
       }
     });
 
@@ -662,26 +663,27 @@ export class DatabaseStorage implements IStorage {
     const categorizedAbsences: Array<{ date: string; category: string; count: number }> = [];
 
     result.forEach(row => {
-      totalAbsent += row.count;
+      const count = parseInt(row.count.toString()) || 0;
+      totalAbsent += count;
       const category = row.absentCategory || 'irregular_leave';
       
       switch (category) {
         case 'official_leave':
-          officialLeave += row.count;
+          officialLeave += count;
           break;
         case 'private_leave':
         case 'irregular_leave':
-          irregularLeave += row.count;
+          irregularLeave += count;
           break;
         case 'sick_leave':
-          sickLeave += row.count;
+          sickLeave += count;
           break;
       }
 
       categorizedAbsences.push({
         date: row.date,
         category,
-        count: row.count
+        count: count
       });
     });
 

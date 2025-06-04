@@ -382,22 +382,15 @@ export default function Analytics() {
             <CardTitle>This Week Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {weeklyData.map((day, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="font-medium">{day.day}</div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-32 h-3 bg-gray-200 rounded-full">
-                      <div 
-                        className="h-3 bg-blue-500 rounded-full" 
-                        style={{ width: `${Math.max(0, Math.min(100, day.rate))}%` }}
-                      />
-                    </div>
-                    <div className="text-sm font-medium w-12 text-right">{day.rate.toFixed(2)}%</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Attendance Rate']} />
+                <Bar dataKey="rate" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -407,25 +400,18 @@ export default function Analytics() {
             <CardTitle>Department Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {departmentChartData.map((dept, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                  <div>
-                    <div className="font-medium">{dept.fullName}</div>
-                    <div className="text-sm text-gray-600">{dept.teacherCount} teachers</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold">{dept.attendanceRate.toFixed(2)}%</div>
-                    <div className="w-20 h-2 bg-gray-200 rounded">
-                      <div 
-                        className="h-2 bg-blue-500 rounded" 
-                        style={{ width: `${(dept.attendanceRate - 70) / 30 * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={departmentChartData} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" domain={[70, 100]} />
+                <YAxis type="category" dataKey="name" width={100} />
+                <Tooltip 
+                  formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Attendance Rate']}
+                  labelFormatter={(label) => `Department: ${label}`}
+                />
+                <Bar dataKey="attendanceRate" fill="#10b981" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 

@@ -59,18 +59,21 @@ export function Navigation() {
   const navigationItems = getNavigationItems(user?.role || 'dataentry');
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
-              <GraduationCap className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
+              <GraduationCap className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">Attendance System</h1>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Attendance System</h1>
+              <p className="text-xs text-gray-500 hidden sm:block">School Management Platform</p>
+            </div>
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex items-center space-x-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.href;
@@ -78,10 +81,10 @@ export function Navigation() {
                 <Link key={item.href} href={item.href}>
                   <Button
                     variant="ghost"
-                    className={`px-1 pb-4 text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? "text-primary border-b-2 border-primary"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-200"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     }`}
                   >
                     <Icon className="mr-2 h-4 w-4" />
@@ -90,6 +93,23 @@ export function Navigation() {
                 </Link>
               );
             })}
+            
+            {/* User Profile & Logout */}
+            <div className="flex items-center ml-6 pl-6 border-l border-gray-200">
+              <div className="text-sm text-gray-700 mr-3">
+                <span className="font-medium">{user?.username}</span>
+                <span className="block text-xs text-gray-500 capitalize">{user?.role}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Logout
+              </Button>
+            </div>
           </nav>
 
           {/* Mobile Navigation */}
