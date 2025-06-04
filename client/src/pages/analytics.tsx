@@ -99,64 +99,60 @@ export default function Analytics() {
   // Process attendance trend data with proper calculations
   const attendanceTrendData = trends.map((trend: any) => {
     // Safely parse numbers and ensure they're valid
-    const present = Math.max(0, parseInt(trend.present) || 0);
-    const absent = Math.max(0, parseInt(trend.absent) || 0);
-    const halfDay = Math.max(0, parseInt(trend.halfDay) || 0);
-    const shortLeave = Math.max(0, parseInt(trend.shortLeave) || 0);
+    const present = Math.max(0, Number(trend.present) || 0);
+    const absent = Math.max(0, Number(trend.absent) || 0);
+    const halfDay = Math.max(0, Number(trend.halfDay) || 0);
+    const shortLeave = Math.max(0, Number(trend.shortLeave) || 0);
     
     const totalTeachers = present + absent + halfDay + shortLeave;
     const effectivePresent = present + (halfDay * 0.5) + (shortLeave * 0.75);
     
     // Ensure attendance rate is never NaN or invalid
     let attendanceRate = 0;
-    if (totalTeachers > 0 && isFinite(effectivePresent)) {
-      attendanceRate = Math.round((effectivePresent / totalTeachers) * 100);
+    if (totalTeachers > 0 && Number.isFinite(effectivePresent) && effectivePresent >= 0) {
+      const rate = (effectivePresent / totalTeachers) * 100;
+      attendanceRate = Number.isFinite(rate) ? parseFloat(rate.toFixed(2)) : 0;
       attendanceRate = Math.min(100, Math.max(0, attendanceRate));
     }
     
     return {
       date: formatDate(new Date(trend.date), 'MMM dd'),
       fullDate: trend.date,
-      attendanceRate: isFinite(attendanceRate) ? attendanceRate : 0,
+      attendanceRate: Number.isFinite(attendanceRate) ? attendanceRate : 0,
       present,
       absent,
       halfDay,
       shortLeave,
       total: totalTeachers,
     };
-  }).filter(item => isFinite(item.attendanceRate) && item.total > 0);
+  }).filter(item => Number.isFinite(item.attendanceRate) && item.total > 0 && item.attendanceRate >= 0);
 
   // Department statistics with robust data validation
   const departmentChartData = departmentStats
     .filter((dept: any) => dept && dept.department) // Only include valid departments
     .map((dept: any) => {
       // Calculate a safe attendance rate
-      let rate = 85; // Default safe value
+      let rate = 0;
       
       if (dept.attendanceRate !== null && dept.attendanceRate !== undefined && dept.attendanceRate !== 'null') {
         const rawRate = Number(dept.attendanceRate);
-        if (!isNaN(rawRate) && isFinite(rawRate)) {
-          // Normalize percentage values
-          if (rawRate > 100) {
-            rate = Math.min(100, Math.max(70, rawRate / 100));
-          } else if (rawRate > 0) {
-            rate = Math.min(100, Math.max(70, rawRate));
-          }
+        if (Number.isFinite(rawRate) && rawRate >= 0) {
+          rate = Math.min(100, Math.max(0, rawRate));
         }
       }
       
-      const teacherCount = Math.max(1, parseInt(dept.teacherCount) || 1);
+      const teacherCount = Math.max(1, Number(dept.teacherCount) || 1);
       
       return {
         name: (dept.department || 'Unknown').length > 12 ? 
           (dept.department || 'Unknown').substring(0, 12) + '...' : 
           (dept.department || 'Unknown'),
         fullName: dept.department || 'Unknown',
-        attendanceRate: Math.round(rate),
+        attendanceRate: Number.isFinite(rate) ? parseFloat(rate.toFixed(2)) : 0,
         teacherCount: teacherCount,
       };
     })
-    .filter(item => item.attendanceRate >= 70 && item.attendanceRate <= 100); // Only valid percentages
+    .filter(item => Number.isFinite(item.attendanceRate) && item.attendanceRate >= 0 && item.attendanceRate <= 100);
 
   // Overall attendance distribution
   const totalStats = trends.reduce((acc: any, trend: any) => {
@@ -181,26 +177,29 @@ export default function Analytics() {
     { name: 'Private Leave', value: Math.max(0, parseInt(absentAnalytics.irregularLeave) || 0), color: COLORS[3] },
   ].filter(item => item.value > 0 && isFinite(item.value)) : [];
 
-  // Weekly performance data with safe fallback
-  const safeAttendanceData = attendanceTrendData.length > 0 ? attendanceTrendData : [];
-  const weeklyData = safeAttendanceData.slice(-7).length > 0 ? 
-    safeAttendanceData.slice(-7).map((day: any) => {
+  // Weekly performance data with strict validation
+  const weeklyData = attendanceTrendData.length >= 7 ? 
+    attendanceTrendData.slice(-7).map((day: any) => {
       const rate = Number(day.attendanceRate);
+      const validRate = Number.isFinite(rate) && rate >= 0 && rate <= 100 ? rate : 0;
       return {
         day: formatDate(new Date(day.fullDate), 'EEE'),
-        rate: !isNaN(rate) && isFinite(rate) && rate >= 0 && rate <= 100 ? rate : 85,
+        rate: validRate,
         present: Math.max(0, Number(day.present) || 0),
         total: Math.max(0, Number(day.total) || 0),
       };
-    }) : 
-    // Safe fallback data
-    [
-      { day: 'Mon', rate: 85, present: 18, total: 20 },
-      { day: 'Tue', rate: 90, present: 18, total: 20 },
-      { day: 'Wed', rate: 88, present: 17, total: 20 },
-      { day: 'Thu', rate: 92, present: 19, total: 20 },
-      { day: 'Fri', rate: 87, present: 18, total: 20 },
-    ];
+    }).filter(item => Number.isFinite(item.rate) && item.rate >= 0) : 
+    // Generate safe default data when insufficient real data
+    Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return {
+        day: formatDate(date, 'EEE'),
+        rate: 0,
+        present: 0,
+        total: 0,
+      };
+    });
 
   const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
 
