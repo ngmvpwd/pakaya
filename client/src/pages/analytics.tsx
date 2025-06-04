@@ -351,12 +351,12 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={attendanceTrendData.filter(d => d && isFinite(d.attendanceRate))}>
+              <AreaChart data={attendanceTrendData.filter((d: any) => d && Number.isFinite(d.attendanceRate))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis domain={[70, 100]} />
                 <Tooltip 
-                  formatter={(value, name) => {
+                  formatter={(value: any, name: any) => {
                     const numValue = Number(value);
                     const safeValue = Number.isFinite(numValue) ? numValue : 0;
                     return [
@@ -364,7 +364,7 @@ export default function Analytics() {
                       name === 'attendanceRate' ? 'Attendance Rate' : name
                     ];
                   }}
-                  labelFormatter={(label) => `Date: ${label}`}
+                  labelFormatter={(label: any) => `Date: ${label}`}
                 />
                 <Area 
                   type="monotone" 
