@@ -404,138 +404,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.send(csvData);
       } else if (format === 'pdf') {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="attendance.pdf"');
-        
-        // Generate HTML content for PDF conversion
-        let htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .title { font-size: 24px; font-weight: bold; color: #333; }
-            .subtitle { font-size: 16px; color: #666; margin-top: 10px; }
-            .section { margin-bottom: 20px; }
-            .teacher-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
-            .record { border-bottom: 1px solid #eee; padding: 10px 0; }
-            .record:last-child { border-bottom: none; }
-            .status-present { color: #22c55e; font-weight: bold; }
-            .status-absent { color: #ef4444; font-weight: bold; }
-            .status-half_day { color: #f59e0b; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-            th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background-color: #f8f9fa; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="title">ATTENDANCE REPORT</div>
-            <div class="subtitle">Generated on ${new Date().toLocaleDateString()}</div>
-          </div>
-        `;
-        
-        if (req.query.teacherId) {
-          const teacherId = req.query.teacherId;
-          const attendance = await storage.getAttendanceByTeacher(
-            parseInt(teacherId as string),
-            startDate as string,
-            endDate as string
-          );
-          const teacher = await storage.getTeacherById(parseInt(teacherId as string));
+        try {
+          const puppeteer = require('puppeteer');
           
-          htmlContent += `
-          <div class="teacher-info">
-            <h3>Teacher: ${teacher?.name}</h3>
-            <p>Department: ${teacher?.department}</p>
-            <p>Teacher ID: ${teacher?.teacherId}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Check-in Time</th>
-              </tr>
-            </thead>
-            <tbody>
-          `;
-          
-          attendance.forEach(record => {
-            htmlContent += `
-            <tr>
-              <td>${record.date}</td>
-              <td class="status-${record.status}">${record.status.replace('_', ' ').toUpperCase()}</td>
-              <td>${record.checkInTime || 'N/A'}</td>
-            </tr>
-            `;
-          });
-          
-          htmlContent += '</tbody></table>';
-        } else {
-          const exportData = await storage.getAttendanceExportData(
-            startDate as string,
-            endDate as string
-          );
-          
+          // Generate HTML content for PDF conversion
           const periodText = startDate && endDate 
-            ? `Period: ${startDate} to ${endDate}`
-            : 'All Records';
-          
-          htmlContent += `
-          <div class="section">
-            <h3>Comprehensive Attendance Report</h3>
-            <p>${periodText}</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Teacher ID</th>
-                <th>Teacher Name</th>
-                <th>Department</th>
-                <th>Total Absences</th>
-                <th>Official Leave</th>
-                <th>Private Leave</th>
-                <th>Sick Leave</th>
-                <th>Short Leave</th>
-                <th>Attendance Rate</th>
-              </tr>
-            </thead>
-            <tbody>
+            ? `Report Period: ${new Date(startDate as string).toLocaleDateString()} to ${new Date(endDate as string).toLocaleDateString()}`
+            : 'All Available Records';
+
+          // Add summary statistics
+          const totalTeachers = exportData.length;
+          const avgAttendanceRate = exportData.reduce((sum, data) => sum + data.attendanceRate, 0) / totalTeachers;
+          const totalAbsences = exportData.reduce((sum, data) => sum + data.totalAbsences, 0);
+
+          const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007BFF; padding-bottom: 20px; }
+              .title { font-size: 28px; font-weight: bold; color: #007BFF; margin-bottom: 10px; }
+              .subtitle { font-size: 16px; color: #666; margin: 5px 0; }
+              .section { margin: 25px 0; }
+              .section h3 { color: #007BFF; font-size: 20px; margin-bottom: 15px; }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 20px 0; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 12px 8px; 
+                text-align: left; 
+                font-size: 12px;
+              }
+              th { 
+                background: linear-gradient(135deg, #007BFF, #0056b3); 
+                color: white; 
+                font-weight: bold; 
+                text-align: center;
+              }
+              tr:nth-child(even) { background-color: #f8f9fa; }
+              tr:hover { background-color: #e7f3ff; }
+              .footer { 
+                margin-top: 40px; 
+                font-size: 10px; 
+                color: #888; 
+                text-align: center; 
+                border-top: 1px solid #ddd; 
+                padding-top: 15px;
+              }
+              .stats { 
+                display: flex; 
+                justify-content: space-around; 
+                margin: 20px 0; 
+                text-align: center;
+              }
+              .stat-item { 
+                background: #f8f9fa; 
+                padding: 15px; 
+                border-radius: 8px; 
+                border-left: 4px solid #007BFF;
+              }
+              .stat-number { font-size: 24px; font-weight: bold; color: #007BFF; }
+              .stat-label { font-size: 12px; color: #666; margin-top: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="title">School Attendance Management System</div>
+              <div class="subtitle">Comprehensive Attendance Report</div>
+              <div class="subtitle">Generated on ${new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}</div>
+            </div>
+            
+            <div class="section">
+              <h3>Report Summary</h3>
+              <p style="font-size: 14px; color: #666;">${periodText}</p>
+              <div class="stats">
+                <div class="stat-item">
+                  <div class="stat-number">${totalTeachers}</div>
+                  <div class="stat-label">Total Teachers</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-number">${avgAttendanceRate.toFixed(1)}%</div>
+                  <div class="stat-label">Average Attendance</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-number">${totalAbsences}</div>
+                  <div class="stat-label">Total Absences</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="section">
+              <h3>Detailed Teacher Attendance Report</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Teacher ID</th>
+                    <th>Teacher Name</th>
+                    <th>Department</th>
+                    <th>Total Absences</th>
+                    <th>Official Leave</th>
+                    <th>Private Leave</th>
+                    <th>Sick Leave</th>
+                    <th>Short Leave</th>
+                    <th>Attendance Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${exportData.map(data => {
+                    const rateColor = data.attendanceRate >= 90 ? '#28a745' : 
+                                     data.attendanceRate >= 75 ? '#ffc107' : '#dc3545';
+                    return `
+                    <tr>
+                      <td style="font-weight: bold;">${data.teacherId}</td>
+                      <td>${data.teacherName}</td>
+                      <td>${data.department}</td>
+                      <td style="text-align: center;">${data.totalAbsences}</td>
+                      <td style="text-align: center;">${data.officialLeave}</td>
+                      <td style="text-align: center;">${data.privateLeave}</td>
+                      <td style="text-align: center;">${data.sickLeave}</td>
+                      <td style="text-align: center;">${data.shortLeave}</td>
+                      <td style="text-align: center; color: ${rateColor}; font-weight: bold;">${data.attendanceRate.toFixed(1)}%</td>
+                    </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="footer">
+              <p>This report was generated automatically by the School Attendance Management System</p>
+              <p>Report contains data for ${totalTeachers} teachers across all departments</p>
+              <p>For questions or concerns, please contact the administration office</p>
+            </div>
+          </body>
+          </html>
           `;
-          
-          exportData.forEach(data => {
-            htmlContent += `
-            <tr>
-              <td>${data.teacherId}</td>
-              <td>${data.teacherName}</td>
-              <td>${data.department}</td>
-              <td>${data.totalAbsences}</td>
-              <td>${data.officialLeave}</td>
-              <td>${data.privateLeave}</td>
-              <td>${data.sickLeave}</td>
-              <td>${data.shortLeave}</td>
-              <td>${data.attendanceRate.toFixed(2)}%</td>
-            </tr>
-            `;
+
+          // Generate PDF using Puppeteer
+          const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
           });
           
-          htmlContent += '</tbody></table>';
+          const page = await browser.newPage();
+          await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+          
+          const pdfBuffer = await page.pdf({
+            format: 'A4',
+            margin: {
+              top: '20mm',
+              right: '15mm',
+              bottom: '20mm',
+              left: '15mm'
+            },
+            printBackground: true,
+            preferCSSPageSize: true
+          });
+          
+          await browser.close();
+          
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename="attendance-report-${new Date().toISOString().split('T')[0]}.pdf"`);
+          res.send(pdfBuffer);
+          
+        } catch (pdfError) {
+          console.error('PDF generation error:', pdfError);
+          res.status(500).json({ message: "Failed to generate PDF. Please try CSV export instead." });
         }
-        
-        htmlContent += `
-          <div style="margin-top: 30px; font-size: 12px; color: #666;">
-            <p>Report generated automatically by School Attendance Management System</p>
-          </div>
-        </body>
-        </html>
-        `;
-        
-        // For now, return HTML that browsers can print as PDF
-        // In production, you'd use a library like puppeteer or jsPDF
-        res.setHeader('Content-Type', 'text/html');
-        res.send(htmlContent);
       } else {
         res.status(400).json({ message: "Unsupported export format. Use 'csv' or 'pdf'" });
       }
