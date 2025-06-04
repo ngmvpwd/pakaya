@@ -381,19 +381,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export routes with absence totals
+  // Export routes with absence totals - optimized for performance
   app.get("/api/export/attendance", async (req, res) => {
     try {
       const { format, startDate, endDate } = req.query;
       
+      // Get data once for both formats
+      const exportData = await storage.getAttendanceExportData(
+        startDate as string,
+        endDate as string
+      );
+      
       if (format === 'csv') {
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="attendance-report.csv"');
-        
-        const exportData = await storage.getAttendanceExportData(
-          startDate as string,
-          endDate as string
-        );
         
         let csvData = 'Teacher ID,Teacher Name,Department,Total Absences,Official Leave,Private Leave,Sick Leave,Short Leave,Attendance Rate\n';
         

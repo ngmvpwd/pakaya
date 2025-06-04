@@ -4,7 +4,7 @@ import {
   type User, type Department, type Teacher, type AttendanceRecord, type Alert,
   type InsertUser, type InsertDepartment, type InsertTeacher, type InsertAttendance, type InsertAlert
 } from "@shared/schema";
-import { eq, and, sql, desc, asc } from "drizzle-orm";
+import { eq, and, or, sql, desc, asc, gte, lte, like, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -460,59 +460,66 @@ export class DatabaseStorage implements IStorage {
     shortLeave: number;
     attendanceRate: number;
   }>> {
-    const allTeachers = await db.select().from(teachers).orderBy(asc(teachers.name));
-    
-    const exportData = [];
-    
-    for (const teacher of allTeachers) {
-      const absenceTotals = await this.getTeacherAbsenceTotals(teacher.id, startDate, endDate);
-      
-      let query = db
-        .select({
-          totalRecords: sql<number>`count(*)`,
-          presentRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end)`,
-          halfDayRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end)`,
-          shortLeaveRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end)`,
-        })
-        .from(attendanceRecords)
-        .where(eq(attendanceRecords.teacherId, teacher.id));
+    // Optimized single query approach to avoid N+1 problem
+    let attendanceQuery = db
+      .select({
+        teacherId: teachers.id,
+        teacherIdString: teachers.teacherId,
+        teacherName: teachers.name,
+        department: teachers.department,
+        totalRecords: sql<number>`count(${attendanceRecords.id})`,
+        presentRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'present' then 1 else 0 end)`,
+        halfDayRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'half_day' then 1 else 0 end)`,
+        shortLeaveRecords: sql<number>`sum(case when ${attendanceRecords.status} = 'short_leave' then 1 else 0 end)`,
+        officialLeave: sql<number>`sum(case when ${attendanceRecords.status} = 'absent' and ${attendanceRecords.absentCategory} = 'official_leave' then 1 else 0 end)`,
+        privateLeave: sql<number>`sum(case when ${attendanceRecords.status} = 'absent' and ${attendanceRecords.absentCategory} = 'private_leave' then 1 else 0 end)`,
+        sickLeave: sql<number>`sum(case when ${attendanceRecords.status} = 'absent' and ${attendanceRecords.absentCategory} = 'sick_leave' then 1 else 0 end)`,
+        totalAbsences: sql<number>`sum(case when ${attendanceRecords.status} = 'absent' then 1 else 0 end)`,
+      })
+      .from(teachers)
+      .leftJoin(attendanceRecords, eq(teachers.id, attendanceRecords.teacherId))
+      .groupBy(teachers.id, teachers.teacherId, teachers.name, teachers.department)
+      .orderBy(asc(teachers.name));
 
-      if (startDate && endDate) {
-        query = query.where(and(
-          eq(attendanceRecords.teacherId, teacher.id),
-          sql`${attendanceRecords.date} >= ${startDate}`,
-          sql`${attendanceRecords.date} <= ${endDate}`
-        ));
-      }
+    if (startDate && endDate) {
+      attendanceQuery = attendanceQuery.where(
+        or(
+          isNull(attendanceRecords.date),
+          and(
+            gte(attendanceRecords.date, startDate),
+            lte(attendanceRecords.date, endDate)
+          )
+        )
+      );
+    }
 
-      const [attendanceStats] = await query;
+    const results = await attendanceQuery;
+    
+    return results.map(result => {
+      const totalRecords = Number(result.totalRecords) || 0;
+      const presentRecords = Number(result.presentRecords) || 0;
+      const halfDayRecords = Number(result.halfDayRecords) || 0;
+      const shortLeaveRecords = Number(result.shortLeaveRecords) || 0;
       
       let attendanceRate = 0;
-      if (attendanceStats && attendanceStats.totalRecords > 0) {
-        const totalRecords = Number(attendanceStats.totalRecords) || 0;
-        const presentRecords = Number(attendanceStats.presentRecords) || 0;
-        const halfDayRecords = Number(attendanceStats.halfDayRecords) || 0;
-        const shortLeaveRecords = Number(attendanceStats.shortLeaveRecords) || 0;
-        
+      if (totalRecords > 0) {
         const effectivePresent = presentRecords + (halfDayRecords * 0.5) + (shortLeaveRecords * 0.8);
         const rate = (effectivePresent / totalRecords) * 100;
         attendanceRate = Math.min(100, Math.max(0, parseFloat(rate.toFixed(2))));
       }
 
-      exportData.push({
-        teacherId: teacher.teacherId,
-        teacherName: teacher.name,
-        department: teacher.department,
-        totalAbsences: absenceTotals.totalAbsences,
-        officialLeave: absenceTotals.officialLeave,
-        privateLeave: absenceTotals.privateLeave,
-        sickLeave: absenceTotals.sickLeave,
-        shortLeave: absenceTotals.shortLeave,
+      return {
+        teacherId: result.teacherIdString,
+        teacherName: result.teacherName,
+        department: result.department,
+        totalAbsences: Number(result.totalAbsences) || 0,
+        officialLeave: Number(result.officialLeave) || 0,
+        privateLeave: Number(result.privateLeave) || 0,
+        sickLeave: Number(result.sickLeave) || 0,
+        shortLeave: Number(result.shortLeaveRecords) || 0,
         attendanceRate,
-      });
-    }
-
-    return exportData;
+      };
+    });
   }
 
   async getAlerts(limit = 10): Promise<(Alert & { teacher: Teacher })[]> {
