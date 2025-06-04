@@ -27,6 +27,27 @@ import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, Search, TrendingUp, Users, Calendar } from "lucide-react";
 import { format as formatDate, subDays, parseISO } from "date-fns";
 
+// Use CSS variables for theme-aware colors
+const getThemeColors = () => {
+  if (typeof window !== 'undefined') {
+    const root = getComputedStyle(document.documentElement);
+    return {
+      primary: `hsl(${root.getPropertyValue('--primary')})`,
+      secondary: `hsl(${root.getPropertyValue('--chart-2')})`,
+      warning: `hsl(${root.getPropertyValue('--chart-3')})`,
+      destructive: `hsl(${root.getPropertyValue('--chart-4')})`,
+      accent: `hsl(${root.getPropertyValue('--chart-5')})`,
+    };
+  }
+  return {
+    primary: '#10B981',
+    secondary: '#3B82F6', 
+    warning: '#F59E0B',
+    destructive: '#EF4444',
+    accent: '#8B5CF6'
+  };
+};
+
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
 
 export default function Analytics() {
@@ -206,8 +227,8 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-gray-900">Analytics & Reports</h2>
-        <p className="text-gray-600 mt-2">Comprehensive attendance analysis and insights</p>
+        <h2 className="text-3xl font-bold text-foreground">Analytics & Reports</h2>
+        <p className="text-muted-foreground mt-2">Comprehensive attendance analysis and insights</p>
       </div>
 
       {/* Controls */}
@@ -276,11 +297,11 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-foreground">
                   {(() => {
                     if (attendanceTrendData.length === 0) return '0%';
                     const sum = attendanceTrendData.reduce((acc: number, day: any) => {
@@ -291,7 +312,7 @@ export default function Analytics() {
                     return isFinite(average) ? `${average.toFixed(2)}%` : '0.00%';
                   })()}
                 </div>
-                <div className="text-sm text-gray-600">Average Attendance</div>
+                <div className="text-sm text-muted-foreground">Average Attendance</div>
               </div>
             </div>
           </CardContent>
@@ -300,12 +321,12 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{teachers.length}</div>
-                <div className="text-sm text-gray-600">Total Teachers</div>
+                <div className="text-2xl font-bold text-foreground">{teachers.length}</div>
+                <div className="text-sm text-muted-foreground">Total Teachers</div>
               </div>
             </div>
           </CardContent>
@@ -314,12 +335,12 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-yellow-600" />
+              <div className="w-12 h-12 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">{trends.length}</div>
-                <div className="text-sm text-gray-600">Days Analyzed</div>
+                <div className="text-2xl font-bold text-foreground">{trends.length}</div>
+                <div className="text-sm text-muted-foreground">Days Analyzed</div>
               </div>
             </div>
           </CardContent>
@@ -328,14 +349,14 @@ export default function Analytics() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
-                <FileText className="h-6 w-6 text-red-600" />
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-foreground">
                   {absentAnalytics ? Math.max(0, parseInt(absentAnalytics.totalAbsent) || 0) : 0}
                 </div>
-                <div className="text-sm text-gray-600">Total Absences</div>
+                <div className="text-sm text-muted-foreground">Total Absences</div>
               </div>
             </div>
           </CardContent>
@@ -352,9 +373,17 @@ export default function Analytics() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={attendanceTrendData.filter((d: any) => d && Number.isFinite(d.attendanceRate))}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis domain={[70, 100]} />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted-foreground/20" />
+                <XAxis 
+                  dataKey="date" 
+                  className="fill-muted-foreground"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  domain={[70, 100]} 
+                  className="fill-muted-foreground"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
                 <Tooltip 
                   formatter={(value: any, name: any) => {
                     const numValue = Number(value);
@@ -365,12 +394,18 @@ export default function Analytics() {
                     ];
                   }}
                   labelFormatter={(label: any) => `Date: ${label}`}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    color: 'hsl(var(--popover-foreground))'
+                  }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="attendanceRate" 
-                  stroke={COLORS[0]} 
-                  fill={COLORS[0]}
+                  stroke="hsl(var(--primary))" 
+                  fill="hsl(var(--primary))"
                   fillOpacity={0.3}
                   strokeWidth={2}
                 />
@@ -387,11 +422,25 @@ export default function Analytics() {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis domain={[0, 100]} />
-                <Tooltip formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Attendance Rate']} />
-                <Bar dataKey="rate" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted-foreground/20" />
+                <XAxis 
+                  dataKey="day" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  domain={[0, 100]} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <Tooltip 
+                  formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Attendance Rate']}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    color: 'hsl(var(--popover-foreground))'
+                  }}
+                />
+                <Bar dataKey="rate" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -405,14 +454,29 @@ export default function Analytics() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={departmentChartData} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[70, 100]} />
-                <YAxis type="category" dataKey="name" width={100} />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted-foreground/20" />
+                <XAxis 
+                  type="number" 
+                  domain={[70, 100]} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  type="category" 
+                  dataKey="name" 
+                  width={100} 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
                 <Tooltip 
                   formatter={(value) => [`${Number(value).toFixed(2)}%`, 'Attendance Rate']}
                   labelFormatter={(label) => `Department: ${label}`}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    color: 'hsl(var(--popover-foreground))'
+                  }}
                 />
-                <Bar dataKey="attendanceRate" fill="#10b981" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="attendanceRate" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -427,11 +491,11 @@ export default function Analytics() {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={distributionData.filter(item => item.value > 0 && isFinite(item.value))}
+                  data={distributionData.filter((item: any) => item.value > 0 && isFinite(item.value))}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${isFinite(percent) ? (percent * 100).toFixed(2) : '0.00'}%`}
+                  label={({ name, percent }: any) => `${name} ${isFinite(percent) ? (percent * 100).toFixed(2) : '0.00'}%`}
                   outerRadius={80}
                   dataKey="value"
                 >
@@ -439,7 +503,15 @@ export default function Analytics() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [isFinite(Number(value)) ? value : 0, 'Count']} />
+                <Tooltip 
+                  formatter={(value) => [isFinite(Number(value)) ? value : 0, 'Count']}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    color: 'hsl(var(--popover-foreground))'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
