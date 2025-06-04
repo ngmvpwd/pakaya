@@ -63,14 +63,10 @@ export function Navigation() {
     <header className="bg-white dark:bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-white/95 dark:bg-card/95">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo & Brand */}
-          <div className="flex items-center min-w-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-chart-5 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+          {/* Logo */}
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-chart-5 rounded-xl flex items-center justify-center shadow-sm">
               <GraduationCap className="h-6 w-6 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">Attendance System</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">School Management Platform</p>
             </div>
           </div>
           
