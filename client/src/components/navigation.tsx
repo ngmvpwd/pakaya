@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getAuthState, logout } from "@/lib/auth";
 import { 
   BarChart3, 
@@ -94,17 +95,18 @@ export function Navigation() {
               );
             })}
             
-            {/* User Profile & Logout */}
-            <div className="flex items-center ml-6 pl-6 border-l border-gray-200">
-              <div className="text-sm text-gray-700 mr-3">
+            {/* Theme Toggle & User Profile */}
+            <div className="flex items-center ml-6 pl-6 border-l border-gray-200 dark:border-gray-700 space-x-3">
+              <ThemeToggle />
+              <div className="text-sm text-gray-700 dark:text-gray-300 mr-3">
                 <span className="font-medium">{user?.username}</span>
-                <span className="block text-xs text-gray-500 capitalize">{user?.role}</span>
+                <span className="block text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role}</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="text-red-600 border-red-200 hover:bg-red-50"
+                className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950"
               >
                 <LogOut className="h-4 w-4 mr-1" />
                 Logout

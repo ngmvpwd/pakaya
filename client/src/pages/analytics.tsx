@@ -356,10 +356,14 @@ export default function Analytics() {
                 <XAxis dataKey="date" />
                 <YAxis domain={[70, 100]} />
                 <Tooltip 
-                  formatter={(value, name) => [
-                    name === 'attendanceRate' ? `${isFinite(value) ? value : 0}%` : (isFinite(value) ? value : 0),
-                    name === 'attendanceRate' ? 'Attendance Rate' : name
-                  ]}
+                  formatter={(value, name) => {
+                    const numValue = Number(value);
+                    const safeValue = Number.isFinite(numValue) ? numValue : 0;
+                    return [
+                      name === 'attendanceRate' ? `${safeValue.toFixed(2)}%` : safeValue,
+                      name === 'attendanceRate' ? 'Attendance Rate' : name
+                    ];
+                  }}
                   labelFormatter={(label) => `Date: ${label}`}
                 />
                 <Area 
