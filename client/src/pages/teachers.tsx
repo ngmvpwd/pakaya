@@ -8,6 +8,7 @@ import { TeacherModal } from "@/components/teacher-modal";
 import { Progress } from "@/components/ui/progress";
 import { Search } from "lucide-react";
 import { Teacher } from "@shared/schema";
+import { PageLayout } from "@/components/page-layout";
 
 export default function Teachers() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,11 +73,10 @@ export default function Teachers() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900">Teacher Profiles</h2>
-        <p className="text-gray-600 mt-2">Individual teacher attendance analysis and patterns</p>
-      </div>
+    <PageLayout 
+      title="Teacher Profiles" 
+      description="Individual teacher attendance analysis and patterns"
+    >
 
       {/* Search and Filters */}
       <Card>
@@ -193,6 +193,6 @@ export default function Teachers() {
         onClose={() => setIsModalOpen(false)}
         teacher={selectedTeacher}
       />
-    </div>
+    </PageLayout>
   );
 }

@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { RoleGuard } from "@/components/role-guard";
+import { PageLayout } from "@/components/page-layout";
 
 const departmentFormSchema = z.object({
   name: z.string().min(1, "Department name is required"),

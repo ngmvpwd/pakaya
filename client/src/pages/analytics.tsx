@@ -26,6 +26,7 @@ import { exportAttendanceData } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, Search, TrendingUp, Users, Calendar } from "lucide-react";
 import { format as formatDate, subDays, parseISO } from "date-fns";
+import { PageLayout } from "@/components/page-layout";
 
 // Use CSS variables for theme-aware colors
 const getThemeColors = () => {
@@ -231,11 +232,10 @@ export default function Analytics() {
   const departments = Array.from(new Set(teachers.map((t: any) => t.department)));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-foreground">Analytics & Reports</h2>
-        <p className="text-muted-foreground mt-2">Comprehensive attendance analysis and insights</p>
-      </div>
+    <PageLayout 
+      title="Analytics & Reports" 
+      description="Comprehensive attendance analysis and insights"
+    >
 
       {/* Controls */}
       <Card>
@@ -610,6 +610,6 @@ export default function Analytics() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 }
