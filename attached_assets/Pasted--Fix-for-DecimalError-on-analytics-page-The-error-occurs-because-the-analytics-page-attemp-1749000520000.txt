@@ -1,0 +1,57 @@
+// Fix for DecimalError on analytics page
+
+/**
+The error occurs because the analytics page attempts to calculate or display a percentage or value that ends up as NaN (Not a Number). This issue likely arises from invalid or missing data used in the calculations.
+
+To fix this issue:
+
+1. **Validate Data Before Calculations:**
+   - Ensure all values used in calculations are valid numbers. Replace missing or invalid data with default values (e.g., 0) to avoid NaN results.
+   - Example:
+     ```javascript
+     const validNumber = (num) => isNaN(num) ? 0 : num;
+     const percentage = (validNumber(present) / validNumber(total)) * 100;
+     ```
+
+2. **Handle Edge Cases:**
+   - If the denominator in a calculation (e.g., `total`) is zero, return a default value to prevent division by zero.
+   - Example:
+     ```javascript
+     const calculatePercentage = (present, total) => {
+       if (total === 0) return 0; // Avoid division by zero
+       return (present / total) * 100;
+     };
+     ```
+
+3. **Update Percentage Formatting:**
+   - Ensure that all calculated percentages are rounded and displayed to two decimal places.
+   - Example:
+     ```javascript
+     const formatPercentage = (value) => `${(value || 0).toFixed(2)}%`;
+     const displayPercentage = formatPercentage(calculatePercentage(present, total));
+     ```
+
+4. **Add Error Handling in Chart Data:**
+   - Ensure that the data passed to the chart library (e.g., Recharts) does not contain invalid or NaN values.
+   - Example:
+     ```javascript
+     const chartData = data.map(item => ({
+       ...item,
+       percentage: isNaN(item.percentage) ? 0 : item.percentage,
+     }));
+     ```
+
+5. **Optional Configuration for Vite:**
+   - Suppress the error overlay during development by updating `vite.config.js`:
+     ```javascript
+     export default {
+       server: {
+         hmr: {
+           overlay: false,
+         },
+       },
+     };
+     ```
+
+Apply these fixes to ensure stable and accurate analytics calculations and visualization on the analytics page.
+*/
