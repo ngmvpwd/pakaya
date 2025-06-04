@@ -209,91 +209,95 @@ export default function Attendance() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Mark Attendance</h2>
-          <p className="text-gray-600 mt-2">Record daily attendance for all teachers</p>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-foreground">Mark Attendance</h1>
+            <p className="text-muted-foreground">Record daily attendance for all teachers</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={() => handleBulkAttendance('present')}
+              disabled={bulkAttendanceMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 h-11"
+            >
+              <Check className="mr-2 h-4 w-4" />
+              Mark All Present
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleExport}
+              className="h-11"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+          </div>
         </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <Button 
-            onClick={() => handleBulkAttendance('present')}
-            disabled={bulkAttendanceMutation.isPending}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Check className="mr-2 h-4 w-4" />
-            Mark All Present
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={handleExport}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-        </div>
-      </div>
 
-      {/* Date Selection & Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-              <Input 
-                type="date" 
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((dept: string) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search Teacher</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* Date Selection & Filters */}
+        <Card className="shadow-elegant">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Date</label>
                 <Input 
-                  placeholder="Search by name or ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="h-11"
                 />
               </div>
-            </div>
-            <div className="flex items-end">
-              <div className="w-full text-sm text-gray-600">
-                <div>Teachers: {filteredTeachers.length}</div>
-                <div className="flex space-x-2 mt-1">
-                  <span className="flex items-center">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                    {attendanceStats.present || 0}
-                  </span>
-                  <span className="flex items-center">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></span>
-                    {attendanceStats.half_day || 0}
-                  </span>
-                  <span className="flex items-center">
-                    <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                    {attendanceStats.absent || 0}
-                  </span>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Department</label>
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments.map((dept: string) => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Search Teacher</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by name or ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-11"
+                  />
+                </div>
+              </div>
+              <div className="flex items-end">
+                <div className="w-full text-sm">
+                  <div className="text-foreground font-medium">Teachers: {filteredTeachers.length}</div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="flex items-center bg-emerald-50 dark:bg-emerald-950 px-2 py-1 rounded-md">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
+                      <span className="text-emerald-700 dark:text-emerald-300 text-xs">{attendanceStats.present || 0}</span>
+                    </span>
+                    <span className="flex items-center bg-amber-50 dark:bg-amber-950 px-2 py-1 rounded-md">
+                      <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+                      <span className="text-amber-700 dark:text-amber-300 text-xs">{attendanceStats.half_day || 0}</span>
+                    </span>
+                    <span className="flex items-center bg-red-50 dark:bg-red-950 px-2 py-1 rounded-md">
+                      <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                      <span className="text-red-700 dark:text-red-300 text-xs">{attendanceStats.absent || 0}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
       {/* Teachers List */}
       <Card>
@@ -463,6 +467,7 @@ export default function Attendance() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
