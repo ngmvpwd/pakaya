@@ -52,21 +52,15 @@ export async function exportAttendanceData(params: {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } else if (params.format === 'pdf') {
-      const htmlContent = await response.text();
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(htmlContent);
-        newWindow.document.close();
-        
-        // Auto-trigger print dialog after content loads
-        newWindow.onload = () => {
-          setTimeout(() => {
-            newWindow.print();
-          }, 1000);
-        };
-      } else {
-        throw new Error('Unable to open print window. Please allow popups for this site.');
-      }
+      const pdfBlob = await response.blob();
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendance-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     }
   } catch (error) {
     console.error('Export error:', error);
