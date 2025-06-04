@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAttendanceSchema, insertTeacherSchema, insertDepartmentSchema } from "@shared/schema";
 import { z } from "zod";
+import puppeteer from "puppeteer";
 
 const loginSchema = z.object({
   username: z.string(),
@@ -405,7 +406,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.send(csvData);
       } else if (format === 'pdf') {
         try {
-          const puppeteer = require('puppeteer');
           
           // Generate HTML content for PDF conversion
           const periodText = startDate && endDate 
