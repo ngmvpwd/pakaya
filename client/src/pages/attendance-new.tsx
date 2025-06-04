@@ -416,34 +416,34 @@ export default function Attendance() {
           </CardContent>
         </Card>
 
-        {/* Absent Category Dialog */}
-        <Dialog open={absentDialogOpen} onOpenChange={setAbsentDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Select Absence Category</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Select value={selectedAbsentCategory} onValueChange={(value: any) => setSelectedAbsentCategory(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="official_leave">Official Leave</SelectItem>
-                  <SelectItem value="irregular_leave">Irregular Leave</SelectItem>
-                  <SelectItem value="sick_leave">Sick Leave</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex space-x-2 justify-end">
-                <Button variant="outline" onClick={() => setAbsentDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAbsentWithCategory} disabled={updateAttendanceMutation.isPending}>
-                  {updateAttendanceMutation.isPending ? 'Updating...' : 'Mark Absent'}
-                </Button>
-              </div>
+      {/* Absent Category Dialog */}
+      <Dialog open={absentDialogOpen} onOpenChange={setAbsentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Absence Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={selectedAbsentCategory} onValueChange={(value: any) => setSelectedAbsentCategory(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="official_leave">Official Leave</SelectItem>
+                <SelectItem value="irregular_leave">Irregular Leave</SelectItem>
+                <SelectItem value="sick_leave">Sick Leave</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex space-x-2 justify-end">
+              <Button variant="outline" onClick={() => setAbsentDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAbsentWithCategory} disabled={updateAttendanceMutation.isPending}>
+                {updateAttendanceMutation.isPending ? 'Updating...' : 'Mark Absent'}
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }
