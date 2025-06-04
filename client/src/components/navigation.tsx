@@ -60,101 +60,126 @@ export function Navigation() {
   const navigationItems = getNavigationItems(user?.role || 'dataentry');
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white dark:bg-card border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-white/95 dark:bg-card/95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3 shadow-md">
+          {/* Logo & Brand */}
+          <div className="flex items-center min-w-0 flex-1 sm:flex-none">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-chart-5 rounded-xl flex items-center justify-center mr-3 shadow-sm">
               <GraduationCap className="h-6 w-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Attendance System</h1>
-              <p className="text-xs text-gray-500 hidden sm:block">School Management Platform</p>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-foreground truncate">Attendance System</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">School Management Platform</p>
             </div>
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden lg:flex items-center space-x-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.href;
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
-                    variant="ghost"
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-200"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className="text-sm font-medium transition-all duration-200"
                   >
                     <Icon className="mr-2 h-4 w-4" />
-                    {item.label}
+                    <span className="hidden xl:inline">{item.label}</span>
+                    <span className="xl:hidden">{item.label.split(' ')[0]}</span>
                   </Button>
                 </Link>
               );
             })}
-            
-            {/* Theme Toggle & User Profile */}
-            <div className="flex items-center ml-6 pl-6 border-l border-gray-200 dark:border-gray-700 space-x-3">
-              <ThemeToggle />
-              <div className="text-sm text-gray-700 dark:text-gray-300 mr-3">
-                <span className="font-medium">{user?.username}</span>
-                <span className="block text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role}</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Logout
-              </Button>
-            </div>
           </nav>
 
-          {/* Mobile Navigation */}
-          <div className="md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                <nav className="flex flex-col space-y-4 mt-8">
-                  {navigationItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location === item.href;
-                    return (
-                      <Link key={item.href} href={item.href}>
-                        <Button
-                          variant={isActive ? "default" : "ghost"}
-                          className="w-full justify-start"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <Icon className="mr-2 h-4 w-4" />
-                          {item.label}
-                        </Button>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-          
-          {/* User Info and Logout */}
-          <div className="flex items-center space-x-4">
-            <div className="hidden md:block text-right">
-              <div className="text-sm font-medium text-gray-900">{user?.name}</div>
-              <div className="text-xs text-gray-500">
-                {user?.role === 'admin' ? 'Administrator' : 'Data Entry Staff'}
+          {/* Right Section - Theme Toggle & User */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <ThemeToggle />
+            
+            {/* User Info - Hidden on small screens */}
+            <div className="hidden md:flex items-center text-sm">
+              <div className="text-right mr-3">
+                <div className="font-medium text-foreground">{user?.username}</div>
+                <div className="text-xs text-muted-foreground capitalize">{user?.role}</div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
+
+            {/* Mobile Menu Button */}
+            <div className="lg:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="ml-2">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-80">
+                  <div className="py-6">
+                    {/* Mobile User Info */}
+                    <div className="px-6 py-4 border-b border-border mb-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-chart-5 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-lg">
+                            {user?.username?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">{user?.username}</div>
+                          <div className="text-sm text-muted-foreground capitalize">{user?.role}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile Navigation */}
+                    <nav className="space-y-2 px-3">
+                      {navigationItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location === item.href;
+                        return (
+                          <Link key={item.href} href={item.href}>
+                            <Button
+                              variant={isActive ? "default" : "ghost"}
+                              className="w-full justify-start text-base py-3"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              <Icon className="mr-3 h-5 w-5" />
+                              {item.label}
+                            </Button>
+                          </Link>
+                        );
+                      })}
+                      
+                      {/* Mobile Logout */}
+                      <div className="pt-4 mt-4 border-t border-border">
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-base py-3 text-destructive border-destructive/20 hover:bg-destructive/10"
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                        >
+                          <LogOut className="mr-3 h-5 w-5" />
+                          Logout
+                        </Button>
+                      </div>
+                    </nav>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Desktop Logout */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="hidden lg:flex text-destructive border-destructive/20 hover:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4 mr-1" />
+              Logout
             </Button>
           </div>
         </div>
