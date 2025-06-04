@@ -9,7 +9,7 @@ import { getAuthState, onAuthStateChange } from "@/lib/auth";
 import { Navigation } from "@/components/navigation";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
-import Attendance from "@/pages/attendance";
+import Attendance from "@/pages/attendance-new";
 import Analytics from "@/pages/analytics";
 import Teachers from "@/pages/teachers";
 import ManageTeachers from "@/pages/manage-teachers";

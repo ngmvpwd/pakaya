@@ -84,7 +84,7 @@ export default function Dashboard() {
       halfDay,
       shortLeave,
     };
-  }).filter(item => !isNaN(item.attendance)) || [];
+  }).filter((item: any) => !isNaN(item.attendance)) || [];
 
   return (
     <div className="min-h-screen bg-background">
