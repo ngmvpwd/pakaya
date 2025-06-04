@@ -74,7 +74,7 @@ export default function Dashboard() {
     
     const totalTeachers = present + absent + halfDay + shortLeave;
     const effectivePresent = present + (halfDay * 0.5) + (shortLeave * 0.75);
-    const attendanceRate = totalTeachers > 0 ? Math.round((effectivePresent / totalTeachers) * 100) : 0;
+    const attendanceRate = totalTeachers > 0 ? parseFloat(((effectivePresent / totalTeachers) * 100).toFixed(2)) : 0;
     
     return {
       date: format(new Date(trend.date), 'MMM dd'),

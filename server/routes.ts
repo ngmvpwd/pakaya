@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let csvData = 'Teacher ID,Teacher Name,Department,Total Absences,Official Leave,Private Leave,Sick Leave,Short Leave,Attendance Rate\n';
         
         exportData.forEach(data => {
-          csvData += `${data.teacherId},${data.teacherName},${data.department},${data.totalAbsences},${data.officialLeave},${data.privateLeave},${data.sickLeave},${data.shortLeave},${data.attendanceRate}%\n`;
+          csvData += `${data.teacherId},"${data.teacherName}","${data.department}",${data.totalAbsences},${data.officialLeave},${data.privateLeave},${data.sickLeave},${data.shortLeave},${data.attendanceRate.toFixed(2)}%\n`;
         });
         
         res.send(csvData);
@@ -473,35 +473,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           htmlContent += '</tbody></table>';
         } else {
-          const today = new Date().toISOString().split('T')[0];
-          const targetDate = (endDate as string) || today;
-          const attendance = await storage.getAttendanceByDate(targetDate);
+          const exportData = await storage.getAttendanceExportData(
+            startDate as string,
+            endDate as string
+          );
+          
+          const periodText = startDate && endDate 
+            ? `Period: ${startDate} to ${endDate}`
+            : 'All Records';
           
           htmlContent += `
           <div class="section">
-            <h3>Daily Attendance Report - ${targetDate}</h3>
+            <h3>Comprehensive Attendance Report</h3>
+            <p>${periodText}</p>
           </div>
           <table>
             <thead>
               <tr>
+                <th>Teacher ID</th>
                 <th>Teacher Name</th>
                 <th>Department</th>
-                <th>Teacher ID</th>
-                <th>Status</th>
-                <th>Check-in Time</th>
+                <th>Total Absences</th>
+                <th>Official Leave</th>
+                <th>Private Leave</th>
+                <th>Sick Leave</th>
+                <th>Short Leave</th>
+                <th>Attendance Rate</th>
               </tr>
             </thead>
             <tbody>
           `;
           
-          attendance.forEach(record => {
+          exportData.forEach(data => {
             htmlContent += `
             <tr>
-              <td>${record.teacher.name}</td>
-              <td>${record.teacher.department}</td>
-              <td>${record.teacher.teacherId}</td>
-              <td class="status-${record.status}">${record.status.replace('_', ' ').toUpperCase()}</td>
-              <td>${record.checkInTime || 'N/A'}</td>
+              <td>${data.teacherId}</td>
+              <td>${data.teacherName}</td>
+              <td>${data.department}</td>
+              <td>${data.totalAbsences}</td>
+              <td>${data.officialLeave}</td>
+              <td>${data.privateLeave}</td>
+              <td>${data.sickLeave}</td>
+              <td>${data.shortLeave}</td>
+              <td>${data.attendanceRate.toFixed(2)}%</td>
             </tr>
             `;
           });

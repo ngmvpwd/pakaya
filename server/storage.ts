@@ -261,7 +261,7 @@ export class DatabaseStorage implements IStorage {
     if (stats.totalTeachers > 0) {
       const effectivePresent = stats.presentToday + (stats.halfDayToday * 0.5) + (stats.shortLeaveToday * 0.75);
       const rate = (effectivePresent / stats.totalTeachers) * 100;
-      stats.attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
+      stats.attendanceRate = Math.min(100, Math.max(0, parseFloat(rate.toFixed(2))));
     }
 
     return stats;
@@ -381,7 +381,7 @@ export class DatabaseStorage implements IStorage {
       if (totalRecords > 0) {
         const effectivePresent = presentRecords + (halfDayRecords * 0.5) + (shortLeaveRecords * 0.8);
         const rate = (effectivePresent / totalRecords) * 100;
-        attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
+        attendanceRate = Math.min(100, Math.max(0, parseFloat(rate.toFixed(2))));
       }
       
       return {
@@ -495,7 +495,7 @@ export class DatabaseStorage implements IStorage {
         
         const effectivePresent = presentRecords + (halfDayRecords * 0.5) + (shortLeaveRecords * 0.8);
         const rate = (effectivePresent / totalRecords) * 100;
-        attendanceRate = Math.min(100, Math.max(0, Math.round(rate)));
+        attendanceRate = Math.min(100, Math.max(0, parseFloat(rate.toFixed(2))));
       }
 
       exportData.push({
