@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/page-layout";
 import {
   LineChart,
   Line,
@@ -86,14 +87,32 @@ export default function Dashboard() {
     };
   }).filter((item: any) => !isNaN(item.attendance)) || [];
 
+  const quickActions = (
+    <div className="flex flex-col sm:flex-row gap-3">
+      <Button 
+        onClick={() => setLocation('/attendance')}
+        className="h-11"
+      >
+        <ClipboardCheck className="mr-2 h-4 w-4" />
+        Mark Attendance
+      </Button>
+      <Button 
+        variant="outline" 
+        onClick={() => setLocation('/analytics')}
+        className="h-11"
+      >
+        <BarChart3 className="mr-2 h-4 w-4" />
+        View Analytics
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-        {/* Page Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of today's attendance and key metrics</p>
-        </div>
+    <PageLayout 
+      title="Dashboard" 
+      description="Overview of today's attendance and key metrics"
+      actions={quickActions}
+    >
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
@@ -263,49 +282,48 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Alerts */}
-        <Card className="shadow-elegant">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Recent Alerts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {alerts && alerts.length > 0 ? (
-              <div className="space-y-4">
-                {alerts.map((alert: any) => (
-                  <div key={alert.id} className="flex items-start space-x-3 py-3 border-b border-border last:border-b-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      alert.severity === 'high' ? 'bg-red-50 dark:bg-red-950' :
-                      alert.severity === 'medium' ? 'bg-amber-50 dark:bg-amber-950' : 'bg-blue-50 dark:bg-blue-950'
-                    }`}>
-                      <AlertTriangle className={`h-4 w-4 ${
-                        alert.severity === 'high' ? 'text-red-500 dark:text-red-400' :
-                        alert.severity === 'medium' ? 'text-amber-500 dark:text-amber-400' : 'text-blue-500 dark:text-blue-400'
-                      }`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{alert.message}</p>
-                      <p className="text-sm text-muted-foreground">{alert.teacher.name} - {alert.teacher.department}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(alert.createdAt), 'PPp')}
-                      </p>
-                    </div>
-                    <Badge variant={
-                      alert.severity === 'high' ? 'destructive' :
-                      alert.severity === 'medium' ? 'default' : 'secondary'
-                    }>
-                      {alert.severity}
-                    </Badge>
+      <Card className="shadow-elegant">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Recent Alerts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {alerts && alerts.length > 0 ? (
+            <div className="space-y-4">
+              {alerts.map((alert: any) => (
+                <div key={alert.id} className="flex items-start space-x-3 py-3 border-b border-border last:border-b-0">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    alert.severity === 'high' ? 'bg-red-50 dark:bg-red-950' :
+                    alert.severity === 'medium' ? 'bg-amber-50 dark:bg-amber-950' : 'bg-blue-50 dark:bg-blue-950'
+                  }`}>
+                    <AlertTriangle className={`h-4 w-4 ${
+                      alert.severity === 'high' ? 'text-red-500 dark:text-red-400' :
+                      alert.severity === 'medium' ? 'text-amber-500 dark:text-amber-400' : 'text-blue-500 dark:text-blue-400'
+                    }`} />
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No recent alerts</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{alert.message}</p>
+                    <p className="text-sm text-muted-foreground">{alert.teacher.name} - {alert.teacher.department}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(alert.createdAt), 'PPp')}
+                    </p>
+                  </div>
+                  <Badge variant={
+                    alert.severity === 'high' ? 'destructive' :
+                    alert.severity === 'medium' ? 'default' : 'secondary'
+                  }>
+                    {alert.severity}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No recent alerts</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </PageLayout>
   );
 }

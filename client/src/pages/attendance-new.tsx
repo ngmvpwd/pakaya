@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PageLayout } from "@/components/page-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { exportAttendanceData } from "@/lib/api";
@@ -206,34 +207,33 @@ export default function Attendance() {
     { present: 0, half_day: 0, absent: 0, short_leave: 0 }
   );
 
+  const pageActions = (
+    <>
+      <Button 
+        onClick={() => handleBulkAttendance('present')}
+        disabled={bulkAttendanceMutation.isPending}
+        className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 h-11"
+      >
+        <Check className="mr-2 h-4 w-4" />
+        Mark All Present
+      </Button>
+      <Button 
+        variant="outline"
+        onClick={handleExport}
+        className="h-11"
+      >
+        <Download className="mr-2 h-4 w-4" />
+        Export
+      </Button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Mark Attendance</h1>
-            <p className="text-muted-foreground">Record daily attendance for all teachers</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              onClick={() => handleBulkAttendance('present')}
-              disabled={bulkAttendanceMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 h-11"
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Mark All Present
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={handleExport}
-              className="h-11"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-          </div>
-        </div>
+    <PageLayout 
+      title="Mark Attendance" 
+      description="Record daily attendance for all teachers"
+      actions={pageActions}
+    >
 
         {/* Date Selection & Filters */}
         <Card className="shadow-elegant">
@@ -444,7 +444,6 @@ export default function Attendance() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+    </PageLayout>
   );
 }
