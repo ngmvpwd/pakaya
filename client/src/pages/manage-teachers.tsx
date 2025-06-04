@@ -166,18 +166,19 @@ export default function ManageTeachers() {
     }
   };
 
+  const pageActions = (
+    <Button onClick={handleAdd}>
+      <Plus className="mr-2 h-4 w-4" />
+      Add Teacher
+    </Button>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Manage Teachers</h2>
-          <p className="text-gray-600 mt-2">Add, edit, and remove teacher records</p>
-        </div>
-        <Button onClick={handleAdd} className="mt-4 sm:mt-0">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Teacher
-        </Button>
-      </div>
+    <PageLayout 
+      title="Manage Teachers" 
+      description="Add, edit, and remove teacher records"
+      actions={pageActions}
+    >
 
       <Card>
         <CardHeader>
@@ -372,6 +373,6 @@ export default function ManageTeachers() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

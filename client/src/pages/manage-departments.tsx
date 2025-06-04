@@ -171,19 +171,20 @@ export default function ManageDepartments() {
     }
   };
 
+  const pageActions = (
+    <Button onClick={handleAdd}>
+      <Plus className="mr-2 h-4 w-4" />
+      Add Department
+    </Button>
+  );
+
   return (
     <RoleGuard allowedRoles={['admin']}>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">Manage Departments</h2>
-            <p className="text-gray-600 mt-2">Add, edit, and remove department records</p>
-          </div>
-          <Button onClick={handleAdd} className="mt-4 sm:mt-0">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Department
-          </Button>
-        </div>
+      <PageLayout 
+        title="Manage Departments" 
+        description="Add, edit, and remove department records"
+        actions={pageActions}
+      >
 
         <Card>
           <CardHeader>
@@ -306,7 +307,7 @@ export default function ManageDepartments() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageLayout>
     </RoleGuard>
   );
 }
