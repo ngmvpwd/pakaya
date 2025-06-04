@@ -28,33 +28,48 @@ export async function exportAttendanceData(params: {
     }
   });
   
-  const response = await apiRequest("GET", `/api/export/attendance?${searchParams}`);
-  
-  if (params.format === 'csv') {
-    const blob = new Blob([await response.text()], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = 'attendance.csv';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  } else if (params.format === 'pdf') {
-    // Open the PDF report in a new window for printing
-    const htmlContent = await response.text();
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-      
-      // Auto-trigger print dialog after content loads
-      newWindow.onload = () => {
-        setTimeout(() => {
-          newWindow.print();
-        }, 500);
-      };
+  try {
+    const response = await fetch(`/api/export/attendance?${searchParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
     }
+    
+    if (params.format === 'csv') {
+      const csvText = await response.text();
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendance-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } else if (params.format === 'pdf') {
+      const htmlContent = await response.text();
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+        
+        // Auto-trigger print dialog after content loads
+        newWindow.onload = () => {
+          setTimeout(() => {
+            newWindow.print();
+          }, 1000);
+        };
+      } else {
+        throw new Error('Unable to open print window. Please allow popups for this site.');
+      }
+    }
+  } catch (error) {
+    console.error('Export error:', error);
+    throw error;
   }
 }

@@ -289,7 +289,7 @@ export default function Analytics() {
                       return acc + rate;
                     }, 0);
                     const average = sum / attendanceTrendData.length;
-                    return isFinite(average) ? `${Math.round(average)}%` : '0%';
+                    return isFinite(average) ? `${average.toFixed(2)}%` : '0.00%';
                   })()}
                 </div>
                 <div className="text-sm text-gray-600">Average Attendance</div>
@@ -393,7 +393,7 @@ export default function Analytics() {
                         style={{ width: `${Math.max(0, Math.min(100, day.rate))}%` }}
                       />
                     </div>
-                    <div className="text-sm font-medium w-12 text-right">{day.rate}%</div>
+                    <div className="text-sm font-medium w-12 text-right">{day.rate.toFixed(2)}%</div>
                   </div>
                 </div>
               ))}
@@ -415,7 +415,7 @@ export default function Analytics() {
                     <div className="text-sm text-gray-600">{dept.teacherCount} teachers</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold">{dept.attendanceRate}%</div>
+                    <div className="text-lg font-bold">{dept.attendanceRate.toFixed(2)}%</div>
                     <div className="w-20 h-2 bg-gray-200 rounded">
                       <div 
                         className="h-2 bg-blue-500 rounded" 
@@ -442,7 +442,7 @@ export default function Analytics() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${isFinite(percent) ? (percent * 100).toFixed(1) : '0.0'}%`}
+                  label={({ name, percent }) => `${name} ${isFinite(percent) ? (percent * 100).toFixed(2) : '0.00'}%`}
                   outerRadius={80}
                   dataKey="value"
                 >
