@@ -146,7 +146,7 @@ export default function Analytics() {
       shortLeave,
       total: totalTeachers,
     };
-  }).filter(item => Number.isFinite(item.attendanceRate) && item.total > 0 && item.attendanceRate >= 0);
+  }).filter((item: any) => Number.isFinite(item.attendanceRate) && item.total > 0 && item.attendanceRate >= 0);
 
   // Department statistics with robust data validation
   const departmentChartData = departmentStats
@@ -173,7 +173,7 @@ export default function Analytics() {
         teacherCount: teacherCount,
       };
     })
-    .filter(item => Number.isFinite(item.attendanceRate) && item.attendanceRate >= 0 && item.attendanceRate <= 100);
+    .filter((item: any) => Number.isFinite(item.attendanceRate) && item.attendanceRate >= 0 && item.attendanceRate <= 100);
 
   // Overall attendance distribution
   const totalStats = trends.reduce((acc: any, trend: any) => {
@@ -189,14 +189,14 @@ export default function Analytics() {
     { name: 'Half Day', value: totalStats.halfDay, color: COLORS[2] },
     { name: 'Short Leave', value: totalStats.shortLeave, color: COLORS[1] },
     { name: 'Absent', value: totalStats.absent, color: COLORS[3] },
-  ].filter(item => item.value > 0 && isFinite(item.value));
+  ].filter((item: any) => item.value > 0 && isFinite(item.value));
 
   // Absence category analysis
   const absentCategoryData = absentAnalytics ? [
     { name: 'Official Leave', value: Math.max(0, parseInt(absentAnalytics.officialLeave) || 0), color: COLORS[0] },
     { name: 'Sick Leave', value: Math.max(0, parseInt(absentAnalytics.sickLeave) || 0), color: COLORS[2] },
     { name: 'Private Leave', value: Math.max(0, parseInt(absentAnalytics.irregularLeave) || 0), color: COLORS[3] },
-  ].filter(item => item.value > 0 && isFinite(item.value)) : [];
+  ].filter((item: any) => item.value > 0 && isFinite(item.value)) : [];
 
   // Weekly performance data with strict validation
   const weeklyData = attendanceTrendData.length >= 7 ? 
@@ -209,7 +209,7 @@ export default function Analytics() {
         present: Math.max(0, Number(day.present) || 0),
         total: Math.max(0, Number(day.total) || 0),
       };
-    }).filter(item => Number.isFinite(item.rate) && item.rate >= 0) : 
+    }).filter((item: any) => Number.isFinite(item.rate) && item.rate >= 0) : 
     // Generate safe default data when insufficient real data
     Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
@@ -530,7 +530,7 @@ export default function Analytics() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) => `${name}: ${value}`}
+                  label={({ name, value }: any) => `${name}: ${value}`}
                   outerRadius={80}
                   dataKey="value"
                 >
@@ -538,8 +538,18 @@ export default function Analytics() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [value, 'Absences']} />
-                <Legend />
+                <Tooltip 
+                  formatter={(value) => [value, 'Absences']}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    color: 'hsl(var(--popover-foreground))'
+                  }}
+                />
+                <Legend 
+                  wrapperStyle={{ color: 'hsl(var(--foreground))' }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -555,28 +565,28 @@ export default function Analytics() {
           {topPerformers && topPerformers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {topPerformers.slice(0, 6).map((performer: any, index: number) => (
-                <div key={performer.teacher.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
+                <div key={performer.teacher.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border border-border">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-700 font-bold text-sm">#{index + 1}</span>
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-green-700 dark:text-green-300 font-bold text-sm">#{index + 1}</span>
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900">{performer.teacher.name}</div>
-                      <div className="text-sm text-gray-600">{performer.teacher.department}</div>
-                      <div className="text-sm text-gray-500">ID: {performer.teacher.teacherId}</div>
+                      <div className="font-medium text-foreground">{performer.teacher.name}</div>
+                      <div className="text-sm text-muted-foreground">{performer.teacher.department}</div>
+                      <div className="text-sm text-muted-foreground">ID: {performer.teacher.teacherId}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-green-600">
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
                       {Math.round(performer.attendanceRate)}%
                     </div>
-                    <div className="text-xs text-gray-500">Attendance</div>
+                    <div className="text-xs text-muted-foreground">Attendance</div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               No performance data available
             </div>
           )}
