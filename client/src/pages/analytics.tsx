@@ -117,70 +117,102 @@ export default function Analytics() {
     }
   };
 
-  // Process attendance trend data with proper calculations
-  const attendanceTrendData = trends.map((trend: any) => {
-    // Safely parse numbers and ensure they're valid
-    const present = Math.max(0, Number(trend.present) || 0);
-    const absent = Math.max(0, Number(trend.absent) || 0);
-    const halfDay = Math.max(0, Number(trend.halfDay) || 0);
-    const shortLeave = Math.max(0, Number(trend.shortLeave) || 0);
+  // Process attendance trend data with robust validation
+  const attendanceTrendData = (trends || []).map((trend: any) => {
+    // Safely parse numbers with strict validation
+    const present = Math.max(0, parseInt(trend.present) || 0);
+    const absent = Math.max(0, parseInt(trend.absent) || 0);
+    const halfDay = Math.max(0, parseInt(trend.halfDay) || 0);
+    const shortLeave = Math.max(0, parseInt(trend.shortLeave) || 0);
     
     const totalTeachers = present + absent + halfDay + shortLeave;
-    const effectivePresent = present + (halfDay * 0.5) + (shortLeave * 0.75);
     
-    // Ensure attendance rate is never NaN or invalid
+    // Calculate attendance rate with strict validation
     let attendanceRate = 0;
-    if (totalTeachers > 0 && Number.isFinite(effectivePresent) && effectivePresent >= 0) {
-      const rate = (effectivePresent / totalTeachers) * 100;
-      attendanceRate = Number.isFinite(rate) ? parseFloat(rate.toFixed(2)) : 0;
-      attendanceRate = Math.min(100, Math.max(0, attendanceRate));
+    if (totalTeachers > 0) {
+      const effectivePresent = present + (halfDay * 0.5) + (shortLeave * 0.75);
+      if (Number.isFinite(effectivePresent) && effectivePresent >= 0) {
+        const rate = (effectivePresent / totalTeachers) * 100;
+        if (Number.isFinite(rate) && !isNaN(rate)) {
+          attendanceRate = Math.min(100, Math.max(0, parseFloat(rate.toFixed(2))));
+        }
+      }
     }
+    
+    // Ensure all values are finite numbers
+    const safeAttendanceRate = Number.isFinite(attendanceRate) && !isNaN(attendanceRate) ? attendanceRate : 0;
     
     return {
       date: formatDate(new Date(trend.date), 'MMM dd'),
       fullDate: trend.date,
-      attendanceRate: Number.isFinite(attendanceRate) ? attendanceRate : 0,
-      present,
-      absent,
-      halfDay,
-      shortLeave,
-      total: totalTeachers,
+      attendanceRate: safeAttendanceRate,
+      present: Number.isFinite(present) ? present : 0,
+      absent: Number.isFinite(absent) ? absent : 0,
+      halfDay: Number.isFinite(halfDay) ? halfDay : 0,
+      shortLeave: Number.isFinite(shortLeave) ? shortLeave : 0,
+      total: Number.isFinite(totalTeachers) ? totalTeachers : 0,
     };
-  }).filter((item: any) => Number.isFinite(item.attendanceRate) && item.total > 0 && item.attendanceRate >= 0);
+  }).filter((item: any) => {
+    // Only include items with valid, finite numbers
+    return Number.isFinite(item.attendanceRate) && 
+           !isNaN(item.attendanceRate) && 
+           item.total > 0 && 
+           item.attendanceRate >= 0 && 
+           item.attendanceRate <= 100;
+  });
 
   // Department statistics with robust data validation
-  const departmentChartData = departmentStats
+  const departmentChartData = (departmentStats || [])
     .filter((dept: any) => dept && dept.department) // Only include valid departments
     .map((dept: any) => {
-      // Calculate a safe attendance rate
+      // Calculate a safe attendance rate with strict validation
       let rate = 0;
       
-      if (dept.attendanceRate !== null && dept.attendanceRate !== undefined && dept.attendanceRate !== 'null') {
-        const rawRate = Number(dept.attendanceRate);
-        if (Number.isFinite(rawRate) && rawRate >= 0) {
+      if (dept.attendanceRate !== null && 
+          dept.attendanceRate !== undefined && 
+          dept.attendanceRate !== 'null' && 
+          dept.attendanceRate !== '') {
+        const rawRate = parseFloat(dept.attendanceRate);
+        if (Number.isFinite(rawRate) && !isNaN(rawRate) && rawRate >= 0) {
           rate = Math.min(100, Math.max(0, rawRate));
         }
       }
       
-      const teacherCount = Math.max(1, Number(dept.teacherCount) || 1);
+      const teacherCount = Math.max(1, parseInt(dept.teacherCount) || 1);
+      
+      // Ensure all values are safe for charts
+      const safeRate = Number.isFinite(rate) && !isNaN(rate) ? parseFloat(rate.toFixed(2)) : 0;
+      const safeTeacherCount = Number.isFinite(teacherCount) && !isNaN(teacherCount) ? teacherCount : 1;
       
       return {
         name: (dept.department || 'Unknown').length > 12 ? 
           (dept.department || 'Unknown').substring(0, 12) + '...' : 
           (dept.department || 'Unknown'),
         fullName: dept.department || 'Unknown',
-        attendanceRate: Number.isFinite(rate) ? parseFloat(rate.toFixed(2)) : 0,
-        teacherCount: teacherCount,
+        attendanceRate: safeRate,
+        teacherCount: safeTeacherCount,
       };
     })
-    .filter((item: any) => Number.isFinite(item.attendanceRate) && item.attendanceRate >= 0 && item.attendanceRate <= 100);
+    .filter((item: any) => {
+      return Number.isFinite(item.attendanceRate) && 
+             !isNaN(item.attendanceRate) && 
+             item.attendanceRate >= 0 && 
+             item.attendanceRate <= 100 &&
+             Number.isFinite(item.teacherCount) &&
+             !isNaN(item.teacherCount);
+    });
 
-  // Overall attendance distribution
-  const totalStats = trends.reduce((acc: any, trend: any) => {
-    acc.present += Math.max(0, parseInt(trend.present) || 0);
-    acc.absent += Math.max(0, parseInt(trend.absent) || 0);
-    acc.halfDay += Math.max(0, parseInt(trend.halfDay) || 0);
-    acc.shortLeave += Math.max(0, parseInt(trend.shortLeave) || 0);
+  // Overall attendance distribution with safe calculations
+  const totalStats = (trends || []).reduce((acc: any, trend: any) => {
+    const present = Math.max(0, parseInt(trend.present) || 0);
+    const absent = Math.max(0, parseInt(trend.absent) || 0);
+    const halfDay = Math.max(0, parseInt(trend.halfDay) || 0);
+    const shortLeave = Math.max(0, parseInt(trend.shortLeave) || 0);
+    
+    acc.present += Number.isFinite(present) ? present : 0;
+    acc.absent += Number.isFinite(absent) ? absent : 0;
+    acc.halfDay += Number.isFinite(halfDay) ? halfDay : 0;
+    acc.shortLeave += Number.isFinite(shortLeave) ? shortLeave : 0;
     return acc;
   }, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
 
@@ -189,27 +221,56 @@ export default function Analytics() {
     { name: 'Half Day', value: totalStats.halfDay, color: COLORS[2] },
     { name: 'Short Leave', value: totalStats.shortLeave, color: COLORS[1] },
     { name: 'Absent', value: totalStats.absent, color: COLORS[3] },
-  ].filter((item: any) => item.value > 0 && isFinite(item.value));
+  ].filter((item: any) => {
+    return Number.isFinite(item.value) && 
+           !isNaN(item.value) && 
+           item.value > 0;
+  });
 
-  // Absence category analysis
+  // Absence category analysis with safe validation
   const absentCategoryData = absentAnalytics ? [
-    { name: 'Official Leave', value: Math.max(0, parseInt(absentAnalytics.officialLeave) || 0), color: COLORS[0] },
-    { name: 'Sick Leave', value: Math.max(0, parseInt(absentAnalytics.sickLeave) || 0), color: COLORS[2] },
-    { name: 'Private Leave', value: Math.max(0, parseInt(absentAnalytics.irregularLeave) || 0), color: COLORS[3] },
-  ].filter((item: any) => item.value > 0 && isFinite(item.value)) : [];
+    { 
+      name: 'Official Leave', 
+      value: Math.max(0, parseInt(absentAnalytics.officialLeave) || 0), 
+      color: COLORS[0] 
+    },
+    { 
+      name: 'Sick Leave', 
+      value: Math.max(0, parseInt(absentAnalytics.sickLeave) || 0), 
+      color: COLORS[2] 
+    },
+    { 
+      name: 'Private Leave', 
+      value: Math.max(0, parseInt(absentAnalytics.irregularLeave) || 0), 
+      color: COLORS[3] 
+    },
+  ].filter((item: any) => {
+    return Number.isFinite(item.value) && 
+           !isNaN(item.value) && 
+           item.value > 0;
+  }) : [];
 
-  // Weekly performance data with strict validation
+  // Weekly performance data with comprehensive validation
   const weeklyData = attendanceTrendData.length >= 7 ? 
     attendanceTrendData.slice(-7).map((day: any) => {
-      const rate = Number(day.attendanceRate);
-      const validRate = Number.isFinite(rate) && rate >= 0 && rate <= 100 ? rate : 0;
+      const rawRate = parseFloat(day.attendanceRate);
+      const safeRate = Number.isFinite(rawRate) && !isNaN(rawRate) && rawRate >= 0 && rawRate <= 100 ? rawRate : 0;
+      const safePresent = Math.max(0, parseInt(day.present) || 0);
+      const safeTotal = Math.max(0, parseInt(day.total) || 0);
+      
       return {
         day: formatDate(new Date(day.fullDate), 'EEE'),
-        rate: validRate,
-        present: Math.max(0, Number(day.present) || 0),
-        total: Math.max(0, Number(day.total) || 0),
+        rate: Number.isFinite(safeRate) ? safeRate : 0,
+        present: Number.isFinite(safePresent) ? safePresent : 0,
+        total: Number.isFinite(safeTotal) ? safeTotal : 0,
       };
-    }).filter((item: any) => Number.isFinite(item.rate) && item.rate >= 0) : 
+    }).filter((item: any) => {
+      return Number.isFinite(item.rate) && 
+             !isNaN(item.rate) && 
+             item.rate >= 0 &&
+             Number.isFinite(item.present) &&
+             Number.isFinite(item.total);
+    }) : 
     // Generate safe default data when insufficient real data
     Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
@@ -303,13 +364,21 @@ export default function Analytics() {
               <div className="ml-4">
                 <div className="text-2xl font-bold text-foreground">
                   {(() => {
-                    if (attendanceTrendData.length === 0) return '0%';
-                    const sum = attendanceTrendData.reduce((acc: number, day: any) => {
-                      const rate = isFinite(day.attendanceRate) ? day.attendanceRate : 0;
-                      return acc + rate;
+                    if (!attendanceTrendData || attendanceTrendData.length === 0) return '0.00%';
+                    
+                    const validData = attendanceTrendData.filter((day: any) => 
+                      Number.isFinite(day.attendanceRate) && !isNaN(day.attendanceRate)
+                    );
+                    
+                    if (validData.length === 0) return '0.00%';
+                    
+                    const sum = validData.reduce((acc: number, day: any) => {
+                      const rate = parseFloat(day.attendanceRate);
+                      return acc + (Number.isFinite(rate) && !isNaN(rate) ? rate : 0);
                     }, 0);
-                    const average = sum / attendanceTrendData.length;
-                    return isFinite(average) ? `${average.toFixed(2)}%` : '0.00%';
+                    
+                    const average = sum / validData.length;
+                    return Number.isFinite(average) && !isNaN(average) ? `${average.toFixed(2)}%` : '0.00%';
                   })()}
                 </div>
                 <div className="text-sm text-muted-foreground">Average Attendance</div>
@@ -372,7 +441,13 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={attendanceTrendData.filter((d: any) => d && Number.isFinite(d.attendanceRate))}>
+              <AreaChart data={attendanceTrendData.filter((d: any) => 
+                d && 
+                Number.isFinite(d.attendanceRate) && 
+                !isNaN(d.attendanceRate) && 
+                d.attendanceRate >= 0 && 
+                d.attendanceRate <= 100
+              )}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted-foreground/20" />
                 <XAxis 
                   dataKey="date" 
@@ -386,8 +461,8 @@ export default function Analytics() {
                 />
                 <Tooltip 
                   formatter={(value: any, name: any) => {
-                    const numValue = Number(value);
-                    const safeValue = Number.isFinite(numValue) ? numValue : 0;
+                    const numValue = parseFloat(value);
+                    const safeValue = Number.isFinite(numValue) && !isNaN(numValue) ? numValue : 0;
                     return [
                       name === 'attendanceRate' ? `${safeValue.toFixed(2)}%` : safeValue,
                       name === 'attendanceRate' ? 'Attendance Rate' : name
