@@ -26,9 +26,12 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
+import { exportAttendanceData } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const { data: stats = {} } = useQuery<any>({
     queryKey: ['/api/stats/overview'],
@@ -47,23 +50,29 @@ export default function Dashboard() {
   const handleExport = async (format: 'csv' | 'pdf') => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`/api/export/attendance?format=${format}&endDate=${today}`);
+      await exportAttendanceData({
+        format,
+        endDate: today,
+      });
       
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `attendance_${today}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      if (format === 'csv') {
+        toast({
+          title: "Success",
+          description: "CSV report downloaded successfully",
+        });
       } else {
-        console.error('Export failed');
+        toast({
+          title: "Print Ready",
+          description: "Print dialog opened. Use browser's print to PDF option.",
+        });
       }
     } catch (error) {
       console.error('Export error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to export ${format.toUpperCase()} report`,
+        variant: "destructive",
+      });
     }
   };
 
