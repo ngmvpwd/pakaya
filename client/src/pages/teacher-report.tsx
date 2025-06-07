@@ -46,7 +46,7 @@ export function TeacherReport() {
   const teacherDept = urlParams.get('department');
   const teacherIdText = urlParams.get('teacherIdText');
 
-  const { data: reportData, isLoading } = useQuery<TeacherReportData>({
+  const { data: reportData, isLoading, error } = useQuery<TeacherReportData>({
     queryKey: ['/api/teacher-report', teacherId],
     queryFn: async () => {
       const response = await fetch(`/api/teacher-report/${teacherId}`);
@@ -54,6 +54,7 @@ export function TeacherReport() {
       return response.json();
     },
     enabled: !!teacherId,
+    retry: 1,
   });
 
   useEffect(() => {
@@ -96,17 +97,21 @@ export function TeacherReport() {
     );
   }
 
-  if (!reportData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-red-600">Failed to load teacher report</p>
-        </div>
-      </div>
-    );
-  }
+  // Create fallback data from URL parameters if API fails
+  const fallbackTeacher = {
+    id: parseInt(teacherId || '0'),
+    name: teacherName || 'Unknown Teacher',
+    teacherId: teacherIdText || 'Unknown ID',
+    department: teacherDept || 'Unknown Department',
+    email: '',
+    phone: '',
+    joinDate: ''
+  };
 
-  const { teacher, attendanceData, stats, absenceTotals } = reportData;
+  const teacher = reportData?.teacher || fallbackTeacher;
+  const attendanceData = reportData?.attendanceData || [];
+  const stats = reportData?.stats || { total: 0, present: 0, halfDay: 0, absent: 0 };
+  const absenceTotals = reportData?.absenceTotals;
   const attendanceRate = stats.total > 0 
     ? Math.round(((stats.present + stats.halfDay * 0.5) / stats.total) * 100 * 10) / 10
     : 0;
@@ -222,25 +227,33 @@ export function TeacherReport() {
                 </tr>
               </thead>
               <tbody>
-                {attendanceData.slice(0, 50).map((record) => (
-                  <tr key={record.id} className="even:bg-gray-50">
-                    <td className="border border-gray-300 px-3 py-2">
-                      {format(new Date(record.date), 'MMM dd, yyyy')}
-                    </td>
-                    <td className={`border border-gray-300 px-3 py-2 text-center font-medium ${getStatusColor(record.status)}`}>
-                      {formatStatus(record.status)}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center">
-                      {record.checkInTime || '--'}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center">
-                      {record.checkOutTime || '--'}
-                    </td>
-                    <td className="border border-gray-300 px-3 py-2">
-                      {record.notes || '--'}
+                {attendanceData.length > 0 ? (
+                  attendanceData.slice(0, 50).map((record) => (
+                    <tr key={record.id} className="even:bg-gray-50">
+                      <td className="border border-gray-300 px-3 py-2">
+                        {format(new Date(record.date), 'MMM dd, yyyy')}
+                      </td>
+                      <td className={`border border-gray-300 px-3 py-2 text-center font-medium ${getStatusColor(record.status)}`}>
+                        {formatStatus(record.status)}
+                      </td>
+                      <td className="border border-gray-300 px-3 py-2 text-center">
+                        {record.checkInTime || '--'}
+                      </td>
+                      <td className="border border-gray-300 px-3 py-2 text-center">
+                        {record.checkOutTime || '--'}
+                      </td>
+                      <td className="border border-gray-300 px-3 py-2">
+                        {record.notes || '--'}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="border border-gray-300 px-3 py-8 text-center text-gray-500">
+                      No attendance records available for this teacher
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
             {attendanceData.length > 50 && (
