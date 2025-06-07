@@ -78,6 +78,29 @@ export function PrintReport() {
 
   return (
     <div className="min-h-screen bg-white text-black print:p-0">
+      {/* Navigation Bar - Shows on screen, hidden in print */}
+      <div className="no-print bg-blue-600 text-white p-4 mb-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">School Attendance Management System</h1>
+            <p className="text-blue-200">Print Report View</p>
+          </div>
+          <div className="flex space-x-4">
+            <button 
+              onClick={() => window.print()} 
+              className="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100"
+            >
+              Print PDF
+            </button>
+            <button 
+              onClick={() => window.history.back()} 
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-400"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
       <style dangerouslySetInnerHTML={{
         __html: `
           @media print {
@@ -88,20 +111,29 @@ export function PrintReport() {
             table { 
               border-collapse: collapse; 
               width: 100%; 
-              font-size: 10px;
+              font-size: 9px;
               margin: 10px 0;
+              table-layout: fixed;
             }
             th, td { 
               border: 1px solid #333; 
-              padding: 4px 6px; 
+              padding: 3px 4px; 
               text-align: left; 
               vertical-align: top;
+              word-wrap: break-word;
+              overflow: hidden;
             }
             th { 
-              background-color: #f0f0f0 !important; 
+              background-color: #e0e0e0 !important; 
               font-weight: bold;
               text-align: center;
+              font-size: 8px;
             }
+            .col-id { width: 8%; }
+            .col-name { width: 20%; }
+            .col-dept { width: 15%; }
+            .col-num { width: 8%; }
+            .col-rate { width: 10%; }
             .print-header { margin-bottom: 20px; }
             .print-stats { 
               margin: 15px 0; 
@@ -174,29 +206,29 @@ export function PrintReport() {
           <table className="w-full border-collapse border border-gray-400">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">ID</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-left">Teacher Name</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-left">Department</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Total Abs.</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Official</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Private</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Sick</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Short</th>
-                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Rate %</th>
+                <th className="col-id border border-gray-400 px-2 py-1 text-xs font-bold text-center">ID</th>
+                <th className="col-name border border-gray-400 px-2 py-1 text-xs font-bold text-left">Teacher Name</th>
+                <th className="col-dept border border-gray-400 px-2 py-1 text-xs font-bold text-left">Department</th>
+                <th className="col-num border border-gray-400 px-2 py-1 text-xs font-bold text-center">Total Abs.</th>
+                <th className="col-num border border-gray-400 px-2 py-1 text-xs font-bold text-center">Official</th>
+                <th className="col-num border border-gray-400 px-2 py-1 text-xs font-bold text-center">Private</th>
+                <th className="col-num border border-gray-400 px-2 py-1 text-xs font-bold text-center">Sick</th>
+                <th className="col-num border border-gray-400 px-2 py-1 text-xs font-bold text-center">Short</th>
+                <th className="col-rate border border-gray-400 px-2 py-1 text-xs font-bold text-center">Rate %</th>
               </tr>
             </thead>
             <tbody>
               {exportData?.map((teacher, index) => (
                 <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="border border-gray-400 px-2 py-1 text-xs font-medium">{teacher.teacherId}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs">{teacher.teacherName}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs">{teacher.department}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.totalAbsences}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.officialLeave}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.privateLeave}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.sickLeave}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.shortLeave}</td>
-                  <td className="border border-gray-400 px-2 py-1 text-xs text-center font-medium">
+                  <td className="col-id border border-gray-400 px-2 py-1 text-xs font-medium text-center">{teacher.teacherId}</td>
+                  <td className="col-name border border-gray-400 px-2 py-1 text-xs">{teacher.teacherName}</td>
+                  <td className="col-dept border border-gray-400 px-2 py-1 text-xs">{teacher.department}</td>
+                  <td className="col-num border border-gray-400 px-2 py-1 text-xs text-center">{teacher.totalAbsences}</td>
+                  <td className="col-num border border-gray-400 px-2 py-1 text-xs text-center">{teacher.officialLeave}</td>
+                  <td className="col-num border border-gray-400 px-2 py-1 text-xs text-center">{teacher.privateLeave}</td>
+                  <td className="col-num border border-gray-400 px-2 py-1 text-xs text-center">{teacher.sickLeave}</td>
+                  <td className="col-num border border-gray-400 px-2 py-1 text-xs text-center">{teacher.shortLeave}</td>
+                  <td className="col-rate border border-gray-400 px-2 py-1 text-xs text-center font-medium">
                     <span className={
                       teacher.attendanceRate >= 90 ? 'text-green-700' :
                       teacher.attendanceRate >= 80 ? 'text-yellow-700' : 'text-red-700'
