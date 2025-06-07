@@ -147,8 +147,8 @@ export async function seedDatabase() {
     const todayStr = new Date().toISOString().split('T')[0];
     const todayDay = new Date().getDay();
     
-    // Only add today's data if it's a weekday (not weekend)
-    if (todayDay !== 0 && todayDay !== 6) {
+    // Add today's data for demo purposes (override weekend check)
+    if (true) {
       for (const teacher of teachersList) {
         const random = Math.random();
         let status: 'present' | 'absent' | 'half_day' | 'short_leave';
@@ -191,7 +191,9 @@ export async function seedDatabase() {
           recordedBy: 1,
         });
       }
-      console.log(`Added today's attendance data for ${todayStr}`);
+      console.log(`Added today's attendance data for ${todayStr} (${teachersList.length} teachers)`);
+    } else {
+      console.log(`Skipped today's attendance - weekend (day ${todayDay})`);
     }
 
     // Insert in batches to avoid overwhelming the database
