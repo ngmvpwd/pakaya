@@ -18,6 +18,7 @@ import ManageDepartments from "@/pages/manage-departments";
 import { PrintReport } from "@/pages/print-report";
 import { TeacherPortal } from "@/pages/teacher-portal";
 import { TeacherReport } from "@/pages/teacher-report";
+import { TeacherLoginStandalone } from "@/pages/teacher-login-standalone";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
@@ -37,7 +38,6 @@ function AuthenticatedApp() {
           <Route path="/manage-departments" component={ManageDepartments} />
           <Route path="/print-report" component={PrintReport} />
           <Route path="/teacher-portal" component={TeacherPortal} />
-          <Route path="/teacher-login" component={TeacherLogin} />
           <Route path="/teacher-report" component={TeacherReport} />
           <Route path="/" component={Dashboard} />
           <Route component={NotFound} />
@@ -63,7 +63,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/teacher-portal" component={TeacherPortal} />
-        <Route path="/teacher-login" component={TeacherLogin} />
+        <Route path="/teacher-login" component={TeacherLoginStandalone} />
         <Route path="/teacher-report" component={TeacherReport} />
         <Route component={NotFound} />
       </Switch>

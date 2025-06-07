@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,9 +41,24 @@ export function TeacherPortal() {
   const [teacherData, setTeacherData] = useState<TeacherPortalAuth | null>(null);
   const { toast } = useToast();
 
+  // Check for existing login on component mount
+  useEffect(() => {
+    const storedTeacherData = sessionStorage.getItem('teacherData');
+    if (storedTeacherData) {
+      try {
+        const teacher = JSON.parse(storedTeacherData);
+        setTeacherData(teacher);
+        setIsLoggedIn(true);
+      } catch (error) {
+        sessionStorage.removeItem('teacherData');
+      }
+    }
+  }, []);
+
   const handleLogin = (teacher: TeacherPortalAuth) => {
     setTeacherData(teacher);
     setIsLoggedIn(true);
+    sessionStorage.setItem('teacherData', JSON.stringify(teacher));
   };
 
   // Fetch teacher data after login
@@ -70,6 +85,7 @@ export function TeacherPortal() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setTeacherData(null);
+    sessionStorage.removeItem('teacherData');
   };
 
   const exportReport = () => {
