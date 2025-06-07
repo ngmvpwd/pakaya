@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,10 +34,13 @@ export function TeacherCredentialsModal({ teacher, isOpen, onClose }: TeacherCre
 
   const updateCredentialsMutation = useMutation({
     mutationFn: async (data: { username: string; password?: string; isPortalEnabled: boolean }) => {
-      return apiRequest(`/api/teachers/${teacher?.id}/credentials`, {
+      const response = await fetch(`/api/teachers/${teacher?.id}/credentials`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) throw new Error('Failed to update credentials');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/teachers'] });
@@ -92,7 +95,7 @@ export function TeacherCredentialsModal({ teacher, isOpen, onClose }: TeacherCre
   };
 
   // Reset form when teacher changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (teacher) {
       setUsername(teacher.username || '');
       setPassword('');

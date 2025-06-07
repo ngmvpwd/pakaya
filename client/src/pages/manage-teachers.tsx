@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, Plus, Search } from "lucide-react";
+import { Trash2, Edit, Plus, Search, Key } from "lucide-react";
 import { Teacher, Department, InsertTeacher } from "@shared/schema";
+import { TeacherCredentialsModal } from "@/components/teacher-credentials-modal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,6 +31,8 @@ export default function ManageTeachers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [credentialsTeacher, setCredentialsTeacher] = useState<Teacher | null>(null);
+  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -256,6 +259,17 @@ export default function ManageTeachers() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => {
+                            setCredentialsTeacher(teacher);
+                            setIsCredentialsModalOpen(true);
+                          }}
+                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                          <Key className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="text-red-600 border-red-600 hover:bg-red-50"
                           onClick={() => handleDelete(teacher)}
                         >
@@ -373,6 +387,15 @@ export default function ManageTeachers() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <TeacherCredentialsModal
+        teacher={credentialsTeacher}
+        isOpen={isCredentialsModalOpen}
+        onClose={() => {
+          setIsCredentialsModalOpen(false);
+          setCredentialsTeacher(null);
+        }}
+      />
     </PageLayout>
   );
 }
