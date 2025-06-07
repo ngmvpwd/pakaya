@@ -28,7 +28,7 @@ export const teachers = pgTable("teachers", {
   joinDate: text("join_date"),
   username: text("username").unique(),
   password: text("password"),
-  isPortalEnabled: boolean("is_portal_enabled").default(false),
+  isPortalEnabled: boolean("is_portal_enabled").default(false).notNull(),
 });
 
 export const attendanceRecords = pgTable("attendance_records", {

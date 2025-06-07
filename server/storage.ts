@@ -26,6 +26,10 @@ export interface IStorage {
   updateTeacher(id: number, teacher: Partial<InsertTeacher>): Promise<Teacher | undefined>;
   deleteTeacher(id: number): Promise<void>;
   
+  // Teacher portal authentication
+  getTeacherByUsername(username: string): Promise<Teacher | undefined>;
+  updateTeacherCredentials(id: number, credentials: { username?: string; password?: string; isPortalEnabled?: boolean }): Promise<Teacher | undefined>;
+  
   // Attendance methods
   getAttendanceByDate(date: string): Promise<(AttendanceRecord & { teacher: Teacher })[]>;
   getAttendanceByTeacher(teacherId: number, startDate?: string, endDate?: string): Promise<AttendanceRecord[]>;
@@ -158,6 +162,17 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTeacher(id: number): Promise<void> {
     await db.delete(teachers).where(eq(teachers.id, id));
+  }
+
+  // Teacher portal authentication methods
+  async getTeacherByUsername(username: string): Promise<Teacher | undefined> {
+    const [teacher] = await db.select().from(teachers).where(eq(teachers.username, username));
+    return teacher;
+  }
+
+  async updateTeacherCredentials(id: number, credentials: { username?: string; password?: string; isPortalEnabled?: boolean }): Promise<Teacher | undefined> {
+    const result = await db.update(teachers).set(credentials).where(eq(teachers.id, id)).returning();
+    return result[0];
   }
 
   async getAttendanceByDate(date: string): Promise<(AttendanceRecord & { teacher: Teacher })[]> {

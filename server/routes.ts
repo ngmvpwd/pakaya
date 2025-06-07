@@ -851,6 +851,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher credentials management
+  app.patch("/api/teachers/:id/credentials", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { username, password, isPortalEnabled } = req.body;
+
+      const credentials: any = { isPortalEnabled };
+      if (username) credentials.username = username;
+      if (password) credentials.password = password;
+
+      const updatedTeacher = await storage.updateTeacherCredentials(id, credentials);
+      
+      if (!updatedTeacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+
+      res.json(updatedTeacher);
+    } catch (error) {
+      console.error('Update credentials error:', error);
+      res.status(500).json({ message: "Failed to update teacher credentials" });
+    }
+  });
+
+  // Teacher portal authentication
+  app.post("/api/teacher-portal/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+
+      const teacher = await storage.getTeacherByUsername(username);
+      
+      if (!teacher || teacher.password !== password || !teacher.isPortalEnabled) {
+        return res.status(401).json({ message: "Invalid credentials or portal access disabled" });
+      }
+
+      // Return teacher data without password
+      const { password: _, ...teacherData } = teacher;
+      res.json(teacherData);
+    } catch (error) {
+      console.error('Teacher login error:', error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Teacher portal attendance data
+  app.get("/api/teacher-portal/attendance/:teacherId", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const attendanceData = await storage.getAttendanceByTeacher(teacherId);
+      res.json(attendanceData);
+    } catch (error) {
+      console.error('Teacher portal attendance error:', error);
+      res.status(500).json({ message: "Failed to fetch attendance data" });
+    }
+  });
+
+  // Teacher portal stats
+  app.get("/api/teacher-portal/stats/:teacherId", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      const attendanceData = await storage.getAttendanceByTeacher(teacherId);
+      
+      const stats = attendanceData.reduce(
+        (acc, record) => {
+          acc.total++;
+          if (record.status === 'present') acc.present++;
+          else if (record.status === 'half_day') acc.halfDay++;
+          else if (record.status === 'absent') acc.absent++;
+          return acc;
+        },
+        { total: 0, present: 0, halfDay: 0, absent: 0 }
+      );
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Teacher portal stats error:', error);
+      res.status(500).json({ message: "Failed to fetch teacher stats" });
+    }
+  });
+
   // Teacher portal routes
   app.get("/api/teacher/info/:teacherId", async (req, res) => {
     try {
