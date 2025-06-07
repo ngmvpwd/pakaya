@@ -14,6 +14,7 @@ import Analytics from "@/pages/analytics";
 import Teachers from "@/pages/teachers";
 import ManageTeachers from "@/pages/manage-teachers";
 import ManageDepartments from "@/pages/manage-departments";
+import { PrintReport } from "@/pages/print-report";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
@@ -28,6 +29,7 @@ function AuthenticatedApp() {
           <Route path="/teachers" component={Teachers} />
           <Route path="/manage-teachers" component={ManageTeachers} />
           <Route path="/manage-departments" component={ManageDepartments} />
+          <Route path="/print-report" component={PrintReport} />
           <Route path="/" component={Dashboard} />
           <Route component={NotFound} />
         </Switch>

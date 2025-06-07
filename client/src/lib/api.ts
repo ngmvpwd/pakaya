@@ -29,18 +29,18 @@ export async function exportAttendanceData(params: {
   });
   
   try {
-    const response = await fetch(`/api/export/attendance?${searchParams}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Export failed: ${response.statusText}`);
-    }
-    
     if (params.format === 'csv') {
+      const response = await fetch(`/api/export/attendance?${searchParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+      
       const csvText = await response.text();
       const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
@@ -52,15 +52,14 @@ export async function exportAttendanceData(params: {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } else if (params.format === 'pdf') {
-      const pdfBlob = await response.blob();
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `attendance-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Open print page in new window for PDF generation
+      const printParams = new URLSearchParams();
+      if (params.startDate) printParams.append('startDate', params.startDate);
+      if (params.endDate) printParams.append('endDate', params.endDate);
+      if (params.teacherId) printParams.append('teacherId', params.teacherId.toString());
+      
+      const printUrl = `/print-report?${printParams.toString()}`;
+      window.open(printUrl, '_blank');
     }
   } catch (error) {
     console.error('Export error:', error);

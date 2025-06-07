@@ -382,6 +382,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New endpoint for attendance data (without PDF generation)
+  app.get("/api/export/attendance-data", async (req, res) => {
+    try {
+      const { startDate, endDate, teacherId } = req.query;
+      
+      const exportData = await storage.getAttendanceExportData(
+        startDate as string,
+        endDate as string
+      );
+      
+      res.json(exportData);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
   // Export routes with absence totals - optimized for performance
   app.get("/api/export/attendance", async (req, res) => {
     try {
