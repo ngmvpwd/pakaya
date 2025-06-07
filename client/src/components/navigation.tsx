@@ -100,6 +100,9 @@ export function Navigation({ isConnected = false }: NavigationProps) {
 
           {/* Right Section */}
           <div className="flex items-center space-x-2">
+            {/* Connection Status */}
+            <ConnectionStatus isConnected={isConnected} />
+            
             <ThemeToggle />
             
             {/* User Info - Desktop only */}

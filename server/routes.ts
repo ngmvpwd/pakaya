@@ -129,6 +129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const teacherData = insertTeacherSchema.parse(req.body);
       const teacher = await storage.createTeacher(teacherData);
+      
+      // Broadcast real-time update
+      broadcastUpdate('teacher_updated', { action: 'created', teacher });
+      
       res.json(teacher);
     } catch (error) {
       res.status(400).json({ message: "Invalid teacher data" });
