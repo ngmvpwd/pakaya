@@ -131,6 +131,28 @@ export default function Dashboard() {
     >
 
         {/* Quick Stats */}
+        {stats && stats.presentToday === 0 && stats.absentToday === 0 && stats.halfDayToday === 0 && stats.shortLeaveToday === 0 ? (
+          <div className="col-span-full mb-6">
+            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+                    <ClipboardCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      No attendance marked for today
+                    </p>
+                    <p className="text-sm text-amber-600 dark:text-amber-300">
+                      Visit the attendance page to mark today's attendance records
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
           <Card className="shadow-elegant">
             <CardContent className="p-6">

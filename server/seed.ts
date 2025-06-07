@@ -143,58 +143,8 @@ export async function seedDatabase() {
       }
     }
     
-    // Add today's attendance data manually to ensure it's included
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayDay = new Date().getDay();
-    
-    // Add today's data for demo purposes (override weekend check)
-    if (true) {
-      for (const teacher of teachersList) {
-        const random = Math.random();
-        let status: 'present' | 'absent' | 'half_day' | 'short_leave';
-        let absentCategory: 'official_leave' | 'private_leave' | 'sick_leave' | null = null;
-        let checkInTime: string | null = null;
-        let checkOutTime: string | null = null;
-        
-        if (random < 0.85) {
-          status = 'present';
-          const checkInHour = 7 + Math.floor(Math.random() * 2);
-          const checkInMinute = Math.floor(Math.random() * 60);
-          checkInTime = `${checkInHour.toString().padStart(2, '0')}:${checkInMinute.toString().padStart(2, '0')}`;
-        } else if (random < 0.92) {
-          status = 'absent';
-          const absentRandom = Math.random();
-          if (absentRandom < 0.4) {
-            absentCategory = 'official_leave';
-          } else if (absentRandom < 0.7) {
-            absentCategory = 'sick_leave';
-          } else {
-            absentCategory = 'private_leave';
-          }
-        } else if (random < 0.97) {
-          status = 'half_day';
-          checkInTime = `${(11 + Math.floor(Math.random() * 2)).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`;
-        } else {
-          status = 'short_leave';
-          checkInTime = `${(7 + Math.floor(Math.random() * 2)).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`;
-          checkOutTime = `${(14 + Math.floor(Math.random() * 3)).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`;
-        }
-        
-        attendanceDataToInsert.push({
-          teacherId: teacher.id,
-          date: todayStr,
-          status,
-          absentCategory,
-          checkInTime,
-          checkOutTime,
-          notes: null,
-          recordedBy: 1,
-        });
-      }
-      console.log(`Added today's attendance data for ${todayStr} (${teachersList.length} teachers)`);
-    } else {
-      console.log(`Skipped today's attendance - weekend (day ${todayDay})`);
-    }
+    // Don't auto-generate today's attendance - let users mark real attendance
+    console.log("Today's attendance will be empty until manually marked by users");
 
     // Insert in batches to avoid overwhelming the database
     const batchSize = 100;
