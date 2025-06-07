@@ -82,12 +82,16 @@ export async function seedDatabase() {
     
     const attendanceDataToInsert = [];
     
-    // Generate attendance for each day over the past 3 months
-    for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
+    // Generate attendance for each day over the past 3 months including today
+    const today = new Date();
+    const endDate = new Date(today.getTime()); // Create a copy to avoid mutation
+    
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
       // Skip weekends (Saturday = 6, Sunday = 0)
       if (d.getDay() === 0 || d.getDay() === 6) continue;
       
       const dateStr = d.toISOString().split('T')[0];
+      console.log(`Generating attendance for: ${dateStr}`);
       
       for (const teacher of teachersList) {
         // Generate realistic attendance patterns
