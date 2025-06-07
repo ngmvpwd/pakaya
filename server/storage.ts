@@ -412,15 +412,32 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    const result = await db
-      .select({
-        status: attendanceRecords.status,
-        absentCategory: attendanceRecords.absentCategory,
-        count: sql<number>`count(*)`
-      })
-      .from(attendanceRecords)
-      .where(and(...whereConditions))
-      .groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
+    let query;
+    if (startDate && endDate) {
+      query = db
+        .select({
+          status: attendanceRecords.status,
+          absentCategory: attendanceRecords.absentCategory,
+          count: sql<number>`count(*)`
+        })
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.teacherId, teacherId),
+          sql`${attendanceRecords.date} >= ${startDate}`,
+          sql`${attendanceRecords.date} <= ${endDate}`
+        ));
+    } else {
+      query = db
+        .select({
+          status: attendanceRecords.status,
+          absentCategory: attendanceRecords.absentCategory,
+          count: sql<number>`count(*)`
+        })
+        .from(attendanceRecords)
+        .where(eq(attendanceRecords.teacherId, teacherId));
+    }
+    
+    const result = await query.groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
 
     const totals = {
       totalAbsences: 0,
@@ -479,10 +496,22 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      const records = await db
-        .select()
-        .from(attendanceRecords)
-        .where(and(...whereConditions));
+      let records;
+      if (startDate && endDate) {
+        records = await db
+          .select()
+          .from(attendanceRecords)
+          .where(and(
+            eq(attendanceRecords.teacherId, teacher.id),
+            sql`${attendanceRecords.date} >= ${startDate}`,
+            sql`${attendanceRecords.date} <= ${endDate}`
+          ));
+      } else {
+        records = await db
+          .select()
+          .from(attendanceRecords)
+          .where(eq(attendanceRecords.teacherId, teacher.id));
+      }
       
       // Calculate statistics
       let totalRecords = records.length;
@@ -668,23 +697,40 @@ export class DatabaseStorage implements IStorage {
     sickLeave: number;
     categorizedAbsences: Array<{ date: string; category: string; count: number }>;
   }> {
-    let query = db
-      .select({
-        date: attendanceRecords.date,
-        absentCategory: attendanceRecords.absentCategory,
-        count: sql<number>`count(*)`
-      })
-      .from(attendanceRecords)
-      .where(eq(attendanceRecords.status, 'absent'));
+    let whereConditions = [eq(attendanceRecords.status, 'absent')];
 
     if (startDate && endDate) {
-      query = query.where(and(
-        eq(attendanceRecords.status, 'absent'),
+      whereConditions.push(
         sql`${attendanceRecords.date} >= ${startDate}`,
         sql`${attendanceRecords.date} <= ${endDate}`
-      ));
+      );
     }
 
+    let query;
+    if (startDate && endDate) {
+      query = db
+        .select({
+          date: attendanceRecords.date,
+          absentCategory: attendanceRecords.absentCategory,
+          count: sql<number>`count(*)`
+        })
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.status, 'absent'),
+          sql`${attendanceRecords.date} >= ${startDate}`,
+          sql`${attendanceRecords.date} <= ${endDate}`
+        ));
+    } else {
+      query = db
+        .select({
+          date: attendanceRecords.date,
+          absentCategory: attendanceRecords.absentCategory,
+          count: sql<number>`count(*)`
+        })
+        .from(attendanceRecords)
+        .where(eq(attendanceRecords.status, 'absent'));
+    }
+    
     const result = await query.groupBy(attendanceRecords.date, attendanceRecords.absentCategory);
 
     let totalAbsent = 0;
@@ -732,24 +778,24 @@ export class DatabaseStorage implements IStorage {
     status: string;
     category?: string;
   }>> {
-    let query = db
+    let whereConditions = [eq(attendanceRecords.teacherId, teacherId)];
+
+    if (startDate && endDate) {
+      whereConditions.push(
+        sql`${attendanceRecords.date} >= ${startDate}`,
+        sql`${attendanceRecords.date} <= ${endDate}`
+      );
+    }
+
+    const result = await db
       .select({
         date: attendanceRecords.date,
         status: attendanceRecords.status,
         absentCategory: attendanceRecords.absentCategory
       })
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.teacherId, teacherId));
-
-    if (startDate && endDate) {
-      query = query.where(and(
-        eq(attendanceRecords.teacherId, teacherId),
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      ));
-    }
-
-    const result = await query.orderBy(desc(attendanceRecords.date));
+      .where(and(...whereConditions))
+      .orderBy(desc(attendanceRecords.date));
 
     return result.map(row => ({
       date: row.date,
