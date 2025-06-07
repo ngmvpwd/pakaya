@@ -217,8 +217,11 @@ export class DatabaseStorage implements IStorage {
     shortLeaveToday: number;
     attendanceRate: number;
   }> {
-    const today = new Date().toISOString().split('T')[0];
-    const targetDate = endDate || today;
+    // Get today's date in local timezone format (YYYY-MM-DD)
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+    const todayStr = today.toISOString().split('T')[0];
+    const targetDate = endDate || todayStr;
 
     const totalTeachers = await db.select({ count: sql<number>`count(*)::integer` }).from(teachers);
     
@@ -270,6 +273,7 @@ export class DatabaseStorage implements IStorage {
   async getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    startDate.setMinutes(startDate.getMinutes() - startDate.getTimezoneOffset());
     const startDateStr = startDate.toISOString().split('T')[0];
 
     const result = await db
@@ -399,24 +403,24 @@ export class DatabaseStorage implements IStorage {
     sickLeave: number;
     shortLeave: number;
   }> {
-    let query = db
+    let whereConditions = [eq(attendanceRecords.teacherId, teacherId)];
+
+    if (startDate && endDate) {
+      whereConditions.push(
+        sql`${attendanceRecords.date} >= ${startDate}`,
+        sql`${attendanceRecords.date} <= ${endDate}`
+      );
+    }
+
+    const result = await db
       .select({
         status: attendanceRecords.status,
         absentCategory: attendanceRecords.absentCategory,
         count: sql<number>`count(*)`
       })
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.teacherId, teacherId));
-
-    if (startDate && endDate) {
-      query = query.where(and(
-        eq(attendanceRecords.teacherId, teacherId),
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      ));
-    }
-
-    const result = await query.groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
+      .where(and(...whereConditions))
+      .groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
 
     const totals = {
       totalAbsences: 0,
@@ -466,22 +470,19 @@ export class DatabaseStorage implements IStorage {
     
     for (const teacher of allTeachers) {
       // Get attendance records for this teacher
-      let attendanceQuery = db
-        .select()
-        .from(attendanceRecords)
-        .where(eq(attendanceRecords.teacherId, teacher.id));
+      let whereConditions = [eq(attendanceRecords.teacherId, teacher.id)];
 
       if (startDate && endDate) {
-        attendanceQuery = attendanceQuery.where(
-          and(
-            eq(attendanceRecords.teacherId, teacher.id),
-            sql`${attendanceRecords.date} >= ${startDate}`,
-            sql`${attendanceRecords.date} <= ${endDate}`
-          )
+        whereConditions.push(
+          sql`${attendanceRecords.date} >= ${startDate}`,
+          sql`${attendanceRecords.date} <= ${endDate}`
         );
       }
 
-      const records = await attendanceQuery;
+      const records = await db
+        .select()
+        .from(attendanceRecords)
+        .where(and(...whereConditions));
       
       // Calculate statistics
       let totalRecords = records.length;
