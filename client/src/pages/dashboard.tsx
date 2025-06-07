@@ -34,7 +34,7 @@ export default function Dashboard() {
   const { toast } = useToast();
 
   const { data: stats } = useQuery<{
-    totalTeachers: string;
+    totalTeachers: number;
     presentToday: number;
     absentToday: number;
     halfDayToday: number;

@@ -220,19 +220,19 @@ export class DatabaseStorage implements IStorage {
     const today = new Date().toISOString().split('T')[0];
     const targetDate = endDate || today;
 
-    const totalTeachers = await db.select({ count: sql<number>`count(*)` }).from(teachers);
+    const totalTeachers = await db.select({ count: sql<number>`count(*)::integer` }).from(teachers);
     
     const todayStats = await db
       .select({
         status: attendanceRecords.status,
-        count: sql<number>`count(*)`
+        count: sql<number>`count(*)::integer`
       })
       .from(attendanceRecords)
       .where(eq(attendanceRecords.date, targetDate))
       .groupBy(attendanceRecords.status);
 
     const stats = {
-      totalTeachers: totalTeachers[0].count,
+      totalTeachers: parseInt(totalTeachers[0].count.toString()),
       presentToday: 0,
       absentToday: 0,
       halfDayToday: 0,
