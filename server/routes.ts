@@ -642,6 +642,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher-specific PDF export endpoint
+  app.post("/api/export/teacher-pdf", async (req, res) => {
+    try {
+      const { teacher, attendanceData, stats, absenceTotals, attendancePattern } = req.body;
+
+      if (!teacher || !attendanceData) {
+        return res.status(400).json({ message: "Teacher and attendance data required" });
+      }
+
+      // Format attendance data for display
+      const formatStatus = (status: string, date?: string) => {
+        switch (status) {
+          case 'present': return 'Present';
+          case 'half_day': return 'Half Day';
+          case 'short_leave': return 'Short Leave';
+          case 'absent': return 'Absent';
+          default: return 'No Data';
+        }
+      };
+
+      // Calculate attendance rate
+      const attendanceRate = stats.total > 0 
+        ? Math.round(((stats.present + stats.halfDay * 0.5) / stats.total) * 100 * 10) / 10
+        : 0;
+
+      const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007BFF; padding-bottom: 20px; }
+          .title { font-size: 28px; font-weight: bold; color: #007BFF; margin-bottom: 10px; }
+          .subtitle { font-size: 16px; color: #666; margin: 5px 0; }
+          .teacher-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+          .stat-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; text-align: center; }
+          .stat-number { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+          .stat-label { font-size: 12px; color: #666; }
+          .present { color: #28a745; }
+          .half-day { color: #ffc107; }
+          .absent { color: #dc3545; }
+          .rate { color: #007bff; }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+            font-size: 11px;
+          }
+          th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+          }
+          th { 
+            background: #007BFF; 
+            color: white; 
+            font-weight: bold; 
+            text-align: center;
+          }
+          tr:nth-child(even) { background-color: #f8f9fa; }
+          .section { margin: 25px 0; }
+          .section h3 { color: #007BFF; font-size: 18px; margin-bottom: 15px; }
+          .footer { 
+            margin-top: 40px; 
+            font-size: 10px; 
+            color: #888; 
+            text-align: center; 
+            border-top: 1px solid #ddd; 
+            padding-top: 15px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">Teacher Attendance Report</div>
+          <div class="subtitle">Generated on ${new Date().toLocaleDateString()}</div>
+        </div>
+
+        <div class="teacher-info">
+          <h2>${teacher.name}</h2>
+          <p><strong>Teacher ID:</strong> ${teacher.teacherId}</p>
+          <p><strong>Department:</strong> ${teacher.department}</p>
+          <p><strong>Email:</strong> ${teacher.email || 'Not provided'}</p>
+          <p><strong>Phone:</strong> ${teacher.phone || 'Not provided'}</p>
+          <p><strong>Join Date:</strong> ${teacher.joinDate || 'Not provided'}</p>
+        </div>
+
+        <div class="section">
+          <h3>Attendance Summary</h3>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-number present">${stats.present}</div>
+              <div class="stat-label">Present Days</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number half-day">${stats.halfDay}</div>
+              <div class="stat-label">Half Days</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number absent">${stats.absent}</div>
+              <div class="stat-label">Absent Days</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number rate">${attendanceRate}%</div>
+              <div class="stat-label">Attendance Rate</div>
+            </div>
+          </div>
+        </div>
+
+        ${absenceTotals ? `
+        <div class="section">
+          <h3>Absence Breakdown</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Official Leave</td><td>${absenceTotals.officialLeave}</td></tr>
+              <tr><td>Private Leave</td><td>${absenceTotals.privateLeave}</td></tr>
+              <tr><td>Sick Leave</td><td>${absenceTotals.sickLeave}</td></tr>
+              <tr><td>Short Leave</td><td>${absenceTotals.shortLeave}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        <div class="section">
+          <h3>Attendance Records</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${attendanceData.slice(0, 50).map((record: any) => `
+                <tr>
+                  <td>${new Date(record.date).toLocaleDateString()}</td>
+                  <td>${formatStatus(record.status, record.date)}</td>
+                  <td>${record.checkInTime || '--'}</td>
+                  <td>${record.checkOutTime || '--'}</td>
+                  <td>${record.notes || '--'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          ${attendanceData.length > 50 ? `<p><em>Showing recent 50 records. Total records: ${attendanceData.length}</em></p>` : ''}
+        </div>
+        
+        <div class="footer">
+          <p>This report was generated automatically by the School Attendance Management System</p>
+          <p>Report contains ${attendanceData.length} attendance records for ${teacher.name}</p>
+        </div>
+      </body>
+      </html>
+      `;
+
+      // Generate PDF using Puppeteer
+      const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
+      });
+      
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        margin: {
+          top: '20mm',
+          right: '15mm',
+          bottom: '20mm',
+          left: '15mm'
+        },
+        printBackground: true,
+        preferCSSPageSize: true
+      });
+      
+      await browser.close();
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${teacher.name.replace(/\s+/g, '_')}_attendance_report.pdf"`);
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      console.error('Teacher PDF generation error:', error);
+      res.status(500).json({ message: "Failed to generate PDF report" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebSocket server

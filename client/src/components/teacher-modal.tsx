@@ -20,6 +20,8 @@ import {
 } from "recharts";
 import { Teacher, AttendanceRecord } from "@shared/schema";
 import { format, subDays } from "date-fns";
+import { Download, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TeacherModalProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ interface TeacherModalProps {
 
 export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+  const { toast } = useToast();
 
   const { data: teacherAttendance } = useQuery({
     queryKey: ['/api/attendance/teacher', teacher?.id],
@@ -116,19 +119,119 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
     }
   };
 
+  const exportToCSV = () => {
+    if (!teacher || !attendanceData) return;
+
+    const csvData = attendanceData.map(record => ({
+      Date: format(new Date(record.date), 'yyyy-MM-dd'),
+      Status: getStatusLabel(record.status, record.date),
+      'Check In Time': record.checkInTime || '',
+      'Check Out Time': record.checkOutTime || '',
+      Notes: record.notes || ''
+    }));
+
+    const headers = Object.keys(csvData[0] || {}).join(',');
+    const rows = csvData.map(row => Object.values(row).map(value => 
+      typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+    ).join(','));
+    
+    const csvContent = [headers, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${teacher.name.replace(/\s+/g, '_')}_attendance_report.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "CSV Export Complete",
+      description: `Attendance report for ${teacher.name} has been downloaded.`,
+    });
+  };
+
+  const exportToPDF = async () => {
+    if (!teacher || !attendanceData) return;
+
+    try {
+      const response = await fetch('/api/export/teacher-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          teacher,
+          attendanceData,
+          stats,
+          absenceTotals,
+          attendancePattern
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${teacher.name.replace(/\s+/g, '_')}_attendance_report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF Export Complete",
+        description: `Attendance report for ${teacher.name} has been downloaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <span className="text-primary font-bold text-lg">
-                {teacher.name.split(' ').map(n => n[0]).join('')}
-              </span>
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <span className="text-primary font-bold text-lg">
+                  {teacher.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">{teacher.name}</h2>
+                <p className="text-gray-600">{teacher.department} • {teacher.teacherId}</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold">{teacher.name}</h2>
-              <p className="text-gray-600">{teacher.department} • {teacher.teacherId}</p>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                className="flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>CSV</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToPDF}
+                className="flex items-center space-x-2"
+              >
+                <FileText className="w-4 h-4" />
+                <span>PDF</span>
+              </Button>
             </div>
           </DialogTitle>
         </DialogHeader>
