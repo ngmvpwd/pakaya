@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { 
@@ -12,11 +10,11 @@ import {
   XCircle, 
   Clock, 
   UserX, 
-  GraduationCap,
   LogOut,
   FileText,
   Download
 } from "lucide-react";
+import { TeacherLogin } from "./teacher-login";
 
 interface TeacherPortalAuth {
   id: number;
@@ -40,10 +38,13 @@ interface AttendanceRecord {
 
 export function TeacherPortal() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [teacherData, setTeacherData] = useState<TeacherPortalAuth | null>(null);
   const { toast } = useToast();
+
+  const handleLogin = (teacher: TeacherPortalAuth) => {
+    setTeacherData(teacher);
+    setIsLoggedIn(true);
+  };
 
   // Fetch teacher data after login
   const { data: attendanceData, isLoading: attendanceLoading } = useQuery<AttendanceRecord[]>({
@@ -66,48 +67,11 @@ export function TeacherPortal() {
     enabled: !!teacherData?.id,
   });
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter both username and password",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    try {
-      const response = await fetch('/api/teacher-portal/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
-      }
-
-      const teacher = await response.json();
-      setTeacherData(teacher);
-      setIsLoggedIn(true);
-      toast({
-        title: "Welcome!",
-        description: `Successfully logged in as ${teacher.name}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "Invalid username or password. Please check your credentials.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setTeacherData(null);
-    setUsername('');
-    setPassword('');
   };
 
   const exportReport = () => {
@@ -185,49 +149,7 @@ export function TeacherPortal() {
   };
 
   if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <GraduationCap className="h-8 w-8 text-white" />
-            </div>
-            <CardTitle className="text-2xl">Teacher Portal</CardTitle>
-            <p className="text-muted-foreground">Access your attendance records</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <Button onClick={handleLogin} className="w-full">
-              Sign In
-            </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Contact your administrator if you need login credentials
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <TeacherLogin onLogin={handleLogin} />;
   }
 
   const attendanceRate = stats ? Math.round(((stats.present + stats.halfDay * 0.5) / stats.total) * 100) : 0;
