@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -37,6 +37,7 @@ function AuthenticatedApp() {
           <Route path="/manage-departments" component={ManageDepartments} />
           <Route path="/print-report" component={PrintReport} />
           <Route path="/teacher-portal" component={TeacherPortal} />
+          <Route path="/teacher-login" component={TeacherLogin} />
           <Route path="/teacher-report" component={TeacherReport} />
           <Route path="/" component={Dashboard} />
           <Route component={NotFound} />
@@ -48,6 +49,7 @@ function AuthenticatedApp() {
 
 function Router() {
   const [isAuthenticated, setIsAuthenticated] = useState(getAuthState().isAuthenticated);
+  const [location] = useLocation();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((authState) => {
@@ -55,6 +57,18 @@ function Router() {
     });
     return unsubscribe;
   }, []);
+
+  // Allow teacher portal and teacher login without admin authentication
+  if (location === '/teacher-portal' || location === '/teacher-login' || location === '/teacher-report') {
+    return (
+      <Switch>
+        <Route path="/teacher-portal" component={TeacherPortal} />
+        <Route path="/teacher-login" component={TeacherLogin} />
+        <Route path="/teacher-report" component={TeacherReport} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Login />;

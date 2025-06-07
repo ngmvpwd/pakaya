@@ -67,8 +67,6 @@ export function TeacherPortal() {
     enabled: !!teacherData?.id,
   });
 
-
-
   const handleLogout = () => {
     setIsLoggedIn(false);
     setTeacherData(null);
@@ -94,51 +92,17 @@ export function TeacherPortal() {
     });
   };
 
-  const exportToCSV = () => {
-    if (!attendanceData || !teacherData) return;
-
-    const csvData = attendanceData.map(record => ({
-      Date: new Date(record.date).toLocaleDateString(),
-      Status: record.status,
-      'Check In': record.checkInTime || '',
-      'Check Out': record.checkOutTime || '',
-      'Absent Category': record.absentCategory || '',
-      Notes: record.notes || ''
-    }));
-
-    const headers = Object.keys(csvData[0] || {}).join(',');
-    const rows = csvData.map(row => Object.values(row).map(value => 
-      typeof value === 'string' && value.includes(',') ? `"${value}"` : value
-    ).join(','));
-    
-    const csvContent = [headers, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${teacherData.name.replace(/\s+/g, '_')}_attendance.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "CSV Export Complete",
-      description: "Your attendance data has been downloaded.",
-    });
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'present': return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'absent': return <XCircle className="w-4 h-4 text-red-600" />;
-      case 'half_day': return <Clock className="w-4 h-4 text-yellow-600" />;
-      case 'short_leave': return <UserX className="w-4 h-4 text-orange-600" />;
-      default: return <Calendar className="w-4 h-4 text-gray-600" />;
+      case 'present': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'absent': return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'half_day': return <Clock className="w-4 h-4 text-yellow-500" />;
+      case 'short_leave': return <UserX className="w-4 h-4 text-orange-500" />;
+      default: return <XCircle className="w-4 h-4 text-gray-400" />;
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'present': return 'Present';
       case 'absent': return 'Absent';
@@ -156,61 +120,96 @@ export function TeacherPortal() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
-                {teacherData?.name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Welcome, {teacherData?.name}</h1>
-              <p className="text-muted-foreground">{teacherData?.department} • {teacherData?.teacherId}</p>
-            </div>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Teacher Portal</h1>
+            <p className="text-muted-foreground">Welcome back, {teacherData?.name}</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" onClick={exportToCSV}>
+          <div className="flex space-x-2">
+            <Button onClick={exportReport} variant="outline">
               <Download className="w-4 h-4 mr-2" />
-              CSV
+              Export Report
             </Button>
-            <Button variant="outline" onClick={exportReport}>
-              <FileText className="w-4 h-4 mr-2" />
-              PDF
-            </Button>
-            <Button variant="outline" onClick={handleLogout}>
+            <Button onClick={handleLogout} variant="outline">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
           </div>
         </div>
 
+        {/* Teacher Info Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <FileText className="w-5 h-5" />
+              <span>Personal Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Name</label>
+                <p className="font-medium">{teacherData?.name}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Teacher ID</label>
+                <p className="font-medium">{teacherData?.teacherId}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Department</label>
+                <p className="font-medium">{teacherData?.department}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
-              <CardContent className="p-4 bg-green-50 dark:bg-green-950/20">
-                <div className="text-2xl font-bold text-green-600">{stats.present}</div>
-                <div className="text-sm text-green-700 dark:text-green-400">Present Days</div>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Present Days</p>
+                    <p className="text-2xl font-bold">{stats.present}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4 bg-yellow-50 dark:bg-yellow-950/20">
-                <div className="text-2xl font-bold text-yellow-600">{stats.halfDay}</div>
-                <div className="text-sm text-yellow-700 dark:text-yellow-400">Half Days</div>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Absent Days</p>
+                    <p className="text-2xl font-bold">{stats.absent}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4 bg-red-50 dark:bg-red-950/20">
-                <div className="text-2xl font-bold text-red-600">{stats.absent}</div>
-                <div className="text-sm text-red-700 dark:text-red-400">Absent Days</div>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-5 h-5 text-yellow-500" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Half Days</p>
+                    <p className="text-2xl font-bold">{stats.halfDay}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4 bg-blue-50 dark:bg-blue-950/20">
-                <div className="text-2xl font-bold text-blue-600">{attendanceRate}%</div>
-                <div className="text-sm text-blue-700 dark:text-blue-400">Attendance Rate</div>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Attendance Rate</p>
+                    <p className="text-2xl font-bold">{attendanceRate}%</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -219,41 +218,45 @@ export function TeacherPortal() {
         {/* Attendance Records */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Attendance Records</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <Calendar className="w-5 h-5" />
+              <span>Attendance History</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {attendanceLoading ? (
-              <div className="text-center py-8">Loading your attendance records...</div>
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
             ) : attendanceData && attendanceData.length > 0 ? (
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {attendanceData.slice(0, 50).map((record) => (
-                  <div key={record.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                {attendanceData.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center space-x-3">
                       {getStatusIcon(record.status)}
                       <div>
-                        <div className="font-medium">{format(new Date(record.date), 'MMMM dd, yyyy')}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {getStatusText(record.status)}
-                          {record.absentCategory && ` (${record.absentCategory.replace('_', ' ')})`}
-                        </div>
+                        <p className="font-medium">{format(new Date(record.date), 'MMMM d, yyyy')}</p>
+                        <p className="text-sm text-muted-foreground">{getStatusLabel(record.status)}</p>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      {record.checkInTime && <div>In: {record.checkInTime}</div>}
-                      {record.checkOutTime && <div>Out: {record.checkOutTime}</div>}
-                      {record.notes && <div className="italic">"{record.notes}"</div>}
+                    <div className="text-right">
+                      {record.checkInTime && (
+                        <p className="text-sm text-muted-foreground">In: {record.checkInTime}</p>
+                      )}
+                      {record.checkOutTime && (
+                        <p className="text-sm text-muted-foreground">Out: {record.checkOutTime}</p>
+                      )}
+                      {record.notes && (
+                        <p className="text-sm text-muted-foreground italic">{record.notes}</p>
+                      )}
                     </div>
                   </div>
                 ))}
-                {attendanceData.length > 50 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">
-                    Showing recent 50 records. Total: {attendanceData.length} records
-                  </p>
-                )}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No attendance records found
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No attendance records found</p>
               </div>
             )}
           </CardContent>
