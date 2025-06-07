@@ -38,8 +38,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Clear all existing data and initialize fresh database
-  await clearDatabase();
+  // Initialize database with seed data only if needed
   await seedDatabase();
   
   const server = await registerRoutes(app);
