@@ -42,6 +42,9 @@ export function TeacherReport() {
   const [location] = useLocation();
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   const teacherId = urlParams.get('teacherId');
+  const teacherName = urlParams.get('name');
+  const teacherDept = urlParams.get('department');
+  const teacherIdText = urlParams.get('teacherIdText');
 
   const { data: reportData, isLoading } = useQuery<TeacherReportData>({
     queryKey: ['/api/teacher-report', teacherId],
@@ -54,11 +57,11 @@ export function TeacherReport() {
   });
 
   useEffect(() => {
-    // Auto-print when data is loaded and URL contains print=true
-    if (reportData && urlParams.get('print') === 'true') {
+    // Auto-trigger print dialog when page loads
+    if (reportData) {
       setTimeout(() => {
         window.print();
-      }, 1000);
+      }, 500);
     }
   }, [reportData]);
 
