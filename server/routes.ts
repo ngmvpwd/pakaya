@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertAttendanceSchema, insertTeacherSchema, insertDepartmentSchema } from "@shared/schema";
 import { z } from "zod";
@@ -22,6 +23,19 @@ const bulkAttendanceSchema = z.object({
   })),
   recordedBy: z.number(),
 });
+
+// WebSocket clients storage
+const wsClients = new Set<WebSocket>();
+
+// Broadcast function for real-time updates
+function broadcastUpdate(type: string, data: any) {
+  const message = JSON.stringify({ type, data, timestamp: Date.now() });
+  wsClients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -251,6 +265,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           results.push(attendanceRecord);
         }
       }
+      
+      // Broadcast real-time update to all connected clients
+      const stats = await storage.getAttendanceStats();
+      broadcastUpdate('attendance_updated', {
+        stats,
+        affectedDate: date,
+        recordsCount: results.length
+      });
       
       res.json(results);
     } catch (error) {
@@ -617,5 +639,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Setup WebSocket server
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws) => {
+    console.log('New WebSocket client connected');
+    wsClients.add(ws);
+    
+    // Send initial connection confirmation
+    ws.send(JSON.stringify({ 
+      type: 'connection', 
+      data: { message: 'Connected to real-time updates' },
+      timestamp: Date.now() 
+    }));
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      wsClients.delete(ws);
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      wsClients.delete(ws);
+    });
+  });
+  
   return httpServer;
 }
