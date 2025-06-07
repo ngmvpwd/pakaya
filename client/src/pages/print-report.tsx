@@ -81,20 +81,48 @@ export function PrintReport() {
       <style dangerouslySetInnerHTML={{
         __html: `
           @media print {
-            body { margin: 0; padding: 0; }
+            body { margin: 0; padding: 0; font-size: 12px; }
             .no-print { display: none !important; }
             .print-page { page-break-after: always; }
-            .print-table { page-break-inside: avoid; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f5f5f5; }
-            .print-header { margin-bottom: 30px; }
-            .print-stats { margin: 20px 0; display: flex; justify-content: space-around; }
-            .print-stat { text-align: center; }
+            .print-table { page-break-inside: auto; }
+            table { 
+              border-collapse: collapse; 
+              width: 100%; 
+              font-size: 10px;
+              margin: 10px 0;
+            }
+            th, td { 
+              border: 1px solid #333; 
+              padding: 4px 6px; 
+              text-align: left; 
+              vertical-align: top;
+            }
+            th { 
+              background-color: #f0f0f0 !important; 
+              font-weight: bold;
+              text-align: center;
+            }
+            .print-header { margin-bottom: 20px; }
+            .print-stats { 
+              margin: 15px 0; 
+              display: grid; 
+              grid-template-columns: repeat(4, 1fr); 
+              gap: 10px; 
+            }
+            .print-stat { 
+              text-align: center; 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+            }
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
           }
           @page {
-            margin: 20mm;
-            size: A4;
+            margin: 15mm;
+            size: A4 landscape;
+          }
+          @media screen {
+            body { font-family: Arial, sans-serif; }
           }
         `
       }} />
@@ -143,45 +171,43 @@ export function PrintReport() {
 
         <div className="print-table">
           <h3 className="text-lg font-semibold mb-4">Teacher Attendance Details</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full border border-gray-300">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 px-4 py-2 text-left">Teacher ID</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Name</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">Department</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Total Absences</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Official Leave</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Private Leave</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Sick Leave</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Short Leave</th>
-                  <th className="border border-gray-300 px-4 py-2 text-center">Attendance Rate</th>
+          <table className="w-full border-collapse border border-gray-400">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">ID</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-left">Teacher Name</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-left">Department</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Total Abs.</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Official</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Private</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Sick</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Short</th>
+                <th className="border border-gray-400 px-2 py-1 text-xs font-bold text-center">Rate %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {exportData?.map((teacher, index) => (
+                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="border border-gray-400 px-2 py-1 text-xs font-medium">{teacher.teacherId}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs">{teacher.teacherName}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs">{teacher.department}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.totalAbsences}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.officialLeave}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.privateLeave}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.sickLeave}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs text-center">{teacher.shortLeave}</td>
+                  <td className="border border-gray-400 px-2 py-1 text-xs text-center font-medium">
+                    <span className={
+                      teacher.attendanceRate >= 90 ? 'text-green-700' :
+                      teacher.attendanceRate >= 80 ? 'text-yellow-700' : 'text-red-700'
+                    }>
+                      {teacher.attendanceRate.toFixed(1)}%
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {exportData?.map((teacher, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-300 px-4 py-2">{teacher.teacherId}</td>
-                    <td className="border border-gray-300 px-4 py-2 font-medium">{teacher.teacherName}</td>
-                    <td className="border border-gray-300 px-4 py-2">{teacher.department}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{teacher.totalAbsences}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{teacher.officialLeave}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{teacher.privateLeave}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{teacher.sickLeave}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">{teacher.shortLeave}</td>
-                    <td className="border border-gray-300 px-4 py-2 text-center">
-                      <span className={`font-medium ${
-                        teacher.attendanceRate >= 90 ? 'text-green-600' :
-                        teacher.attendanceRate >= 80 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
-                        {teacher.attendanceRate.toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500 border-t pt-4">

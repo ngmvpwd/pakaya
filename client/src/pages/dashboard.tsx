@@ -33,7 +33,14 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const { data: stats = {} } = useQuery<any>({
+  const { data: stats } = useQuery<{
+    totalTeachers: string;
+    presentToday: number;
+    absentToday: number;
+    halfDayToday: number;
+    shortLeaveToday: number;
+    attendanceRate: number;
+  }>({
     queryKey: ['/api/stats/overview'],
   });
 
@@ -132,7 +139,7 @@ export default function Dashboard() {
                   <UserCheck className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-2xl font-bold text-foreground">{stats?.presentToday || 0}</div>
+                  <div className="text-2xl font-bold text-foreground">{stats?.presentToday ?? 0}</div>
                   <div className="text-sm text-muted-foreground">Present Today</div>
                 </div>
               </div>
@@ -146,7 +153,7 @@ export default function Dashboard() {
                   <UserX className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-2xl font-bold text-foreground">{stats?.absentToday || 0}</div>
+                  <div className="text-2xl font-bold text-foreground">{stats?.absentToday ?? 0}</div>
                   <div className="text-sm text-muted-foreground">Absent Today</div>
                 </div>
               </div>
