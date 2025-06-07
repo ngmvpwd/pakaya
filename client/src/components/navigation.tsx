@@ -187,6 +187,20 @@ export function Navigation({ isConnected = false }: NavigationProps) {
           </div>
         </div>
       </div>
+      
+      {/* Teacher Portal Link */}
+      <div className="bg-blue-50 dark:bg-blue-950/20 border-b border-blue-200 dark:border-blue-800">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-center py-2">
+            <Link href="/teacher-portal">
+              <Button variant="link" size="sm" className="text-blue-600 dark:text-blue-400 text-xs">
+                <GraduationCap className="mr-1 h-3 w-3" />
+                Teacher Portal - View Your Attendance
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
     </header>
   );
 }

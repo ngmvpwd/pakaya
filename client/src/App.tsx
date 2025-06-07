@@ -36,6 +36,8 @@ function AuthenticatedApp() {
           <Route path="/manage-teachers" component={ManageTeachers} />
           <Route path="/manage-departments" component={ManageDepartments} />
           <Route path="/print-report" component={PrintReport} />
+          <Route path="/teacher-portal" component={TeacherPortal} />
+          <Route path="/teacher-report" component={TeacherReport} />
           <Route path="/" component={Dashboard} />
           <Route component={NotFound} />
         </Switch>
