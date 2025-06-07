@@ -851,6 +851,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher portal routes
+  app.get("/api/teacher/info/:teacherId", async (req, res) => {
+    try {
+      const teacherId = req.params.teacherId;
+      const teacher = await storage.getTeacherByTeacherId(teacherId);
+      
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+      
+      res.json(teacher);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch teacher information" });
+    }
+  });
+
+  // Teacher report data endpoint
+  app.get("/api/teacher-report/:teacherId", async (req, res) => {
+    try {
+      const teacherId = parseInt(req.params.teacherId);
+      
+      // Get teacher info
+      const teacher = await storage.getTeacherById(teacherId);
+      if (!teacher) {
+        return res.status(404).json({ message: "Teacher not found" });
+      }
+
+      // Get attendance data
+      const attendanceData = await storage.getAttendanceByTeacher(teacherId);
+      
+      // Get absence totals
+      const absenceTotals = await storage.getTeacherAbsenceTotals(teacherId);
+
+      // Calculate stats
+      const stats = attendanceData.reduce(
+        (acc, record) => {
+          acc.total++;
+          if (record.status === 'present') acc.present++;
+          else if (record.status === 'half_day') acc.halfDay++;
+          else if (record.status === 'absent') acc.absent++;
+          return acc;
+        },
+        { total: 0, present: 0, halfDay: 0, absent: 0 }
+      );
+
+      res.json({
+        teacher,
+        attendanceData,
+        stats,
+        absenceTotals
+      });
+    } catch (error) {
+      console.error('Teacher report error:', error);
+      res.status(500).json({ message: "Failed to generate teacher report" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebSocket server

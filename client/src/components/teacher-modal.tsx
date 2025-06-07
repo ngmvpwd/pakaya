@@ -152,49 +152,16 @@ export function TeacherModal({ isOpen, onClose, teacher }: TeacherModalProps) {
     });
   };
 
-  const exportToPDF = async () => {
-    if (!teacher || !attendanceData) return;
-
-    try {
-      const response = await fetch('/api/export/teacher-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          teacher,
-          attendanceData,
-          stats,
-          absenceTotals,
-          attendancePattern
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${teacher.name.replace(/\s+/g, '_')}_attendance_report.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "PDF Export Complete",
-        description: `Attendance report for ${teacher.name} has been downloaded.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "Failed to generate PDF report. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const exportToPDF = () => {
+    if (!teacher) return;
+    
+    const printUrl = `/teacher-report?teacherId=${teacher.id}&print=true`;
+    window.open(printUrl, '_blank');
+    
+    toast({
+      title: "PDF Report Generated",
+      description: `Attendance report for ${teacher.name} is being prepared for printing.`,
+    });
   };
 
   return (

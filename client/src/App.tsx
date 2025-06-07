@@ -16,6 +16,8 @@ import Teachers from "@/pages/teachers";
 import ManageTeachers from "@/pages/manage-teachers";
 import ManageDepartments from "@/pages/manage-departments";
 import { PrintReport } from "@/pages/print-report";
+import { TeacherPortal } from "@/pages/teacher-portal";
+import { TeacherReport } from "@/pages/teacher-report";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
