@@ -217,10 +217,10 @@ export class DatabaseStorage implements IStorage {
     shortLeaveToday: number;
     attendanceRate: number;
   }> {
-    // Get today's date in local timezone format (YYYY-MM-DD)
+    // Get today's date accounting for timezone - assume GMT+8 for school operations
     const today = new Date();
-    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-    const todayStr = today.toISOString().split('T')[0];
+    const localDate = new Date(today.getTime() + (8 * 60 * 60 * 1000)); // GMT+8
+    const todayStr = localDate.toISOString().split('T')[0];
     const targetDate = endDate || todayStr;
 
     const totalTeachers = await db.select({ count: sql<number>`count(*)::integer` }).from(teachers);
@@ -273,8 +273,8 @@ export class DatabaseStorage implements IStorage {
   async getAttendanceTrends(days: number): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    startDate.setMinutes(startDate.getMinutes() - startDate.getTimezoneOffset());
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const localStartDate = new Date(startDate.getTime() + (8 * 60 * 60 * 1000)); // GMT+8
+    const startDateStr = localStartDate.toISOString().split('T')[0];
 
     const result = await db
       .select({
@@ -787,15 +787,32 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    const result = await db
-      .select({
-        date: attendanceRecords.date,
-        status: attendanceRecords.status,
-        absentCategory: attendanceRecords.absentCategory
-      })
-      .from(attendanceRecords)
-      .where(and(...whereConditions))
-      .orderBy(desc(attendanceRecords.date));
+    let query;
+    if (startDate && endDate) {
+      query = db
+        .select({
+          date: attendanceRecords.date,
+          status: attendanceRecords.status,
+          absentCategory: attendanceRecords.absentCategory
+        })
+        .from(attendanceRecords)
+        .where(and(
+          eq(attendanceRecords.teacherId, teacherId),
+          sql`${attendanceRecords.date} >= ${startDate}`,
+          sql`${attendanceRecords.date} <= ${endDate}`
+        ));
+    } else {
+      query = db
+        .select({
+          date: attendanceRecords.date,
+          status: attendanceRecords.status,
+          absentCategory: attendanceRecords.absentCategory
+        })
+        .from(attendanceRecords)
+        .where(eq(attendanceRecords.teacherId, teacherId));
+    }
+    
+    const result = await query.orderBy(desc(attendanceRecords.date));
 
     return result.map(row => ({
       date: row.date,
