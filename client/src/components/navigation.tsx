@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ConnectionStatus } from "@/components/connection-status";
 import { getAuthState, logout } from "@/lib/auth";
 import { 
   BarChart3, 
@@ -13,7 +14,9 @@ import {
   GraduationCap,
   UserPlus,
   Settings,
-  Building2
+  Building2,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 
 interface NavigationItem {
@@ -41,7 +44,11 @@ const getNavigationItems = (userRole: string): NavigationItem[] => {
   return baseItems;
 };
 
-export function Navigation() {
+interface NavigationProps {
+  isConnected?: boolean;
+}
+
+export function Navigation({ isConnected = false }: NavigationProps) {
   const [location] = useLocation();
   const [user, setUser] = useState(getAuthState().user);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

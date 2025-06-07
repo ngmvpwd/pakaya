@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useState, useEffect } from "react";
 import { getAuthState, onAuthStateChange } from "@/lib/auth";
 import { Navigation } from "@/components/navigation";
+import { useWebSocket } from "@/hooks/use-websocket";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Attendance from "@/pages/attendance-new";
@@ -18,9 +19,12 @@ import { PrintReport } from "@/pages/print-report";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
+  // Initialize WebSocket connection for real-time updates
+  const { isConnected } = useWebSocket();
+  
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation isConnected={isConnected} />
       <main>
         <Switch>
           <Route path="/dashboard" component={Dashboard} />
