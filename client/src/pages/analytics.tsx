@@ -180,14 +180,13 @@ export default function Analytics() {
     };
   }).filter((item: any) => item.total > 0);
 
-  // Department statistics with guaranteed safe values
-  const departmentChartData = [
-    { name: 'Math', fullName: 'Mathematics', attendanceRate: 92, teacherCount: 5 },
-    { name: 'Science', fullName: 'Science', attendanceRate: 88, teacherCount: 4 },
-    { name: 'English', fullName: 'English', attendanceRate: 85, teacherCount: 3 },
-    { name: 'History', fullName: 'History', attendanceRate: 90, teacherCount: 2 },
-    { name: 'Art', fullName: 'Art', attendanceRate: 87, teacherCount: 3 },
-  ];
+  // Process department statistics from API data
+  const departmentChartData = (departmentStats || []).map((dept: any) => ({
+    name: dept.department.length > 10 ? dept.department.substring(0, 8) + '...' : dept.department,
+    fullName: dept.department,
+    attendanceRate: sanitizePercentage(dept.attendanceRate),
+    teacherCount: sanitizeForChart(dept.teacherCount),
+  }));
 
   // Overall attendance distribution with sanitized calculations
   const totalStats = (trends || []).reduce((acc: any, trend: any) => {
