@@ -1,0 +1,70 @@
+1:41:53 PM: Netlify Build                                                 
+1:41:53 PM: ────────────────────────────────────────────────────────────────
+1:41:53 PM: ​
+1:41:53 PM: ❯ Version
+1:41:53 PM:   @netlify/build 33.4.3
+1:41:53 PM: ​
+1:41:53 PM: ❯ Flags
+1:41:53 PM:   accountId: 683ed5128a1bcaa285be8abe
+1:41:53 PM:   baseRelDir: true
+1:41:53 PM:   buildId: 684545a417cd2b26fcf9b657
+1:41:53 PM:   deployId: 684545a417cd2b26fcf9b659
+1:41:53 PM: ​
+1:41:53 PM: ❯ Current directory
+1:41:53 PM:   /opt/build/repo
+1:41:53 PM: ​
+1:41:53 PM: ❯ Config file
+1:41:53 PM:   /opt/build/repo/netlify.toml
+1:41:53 PM: ​
+1:41:53 PM: ❯ Context
+1:41:53 PM:   production
+1:41:53 PM: ​
+1:41:53 PM: build.command from netlify.toml                               
+1:41:53 PM: ────────────────────────────────────────────────────────────────
+1:41:53 PM: ​
+1:41:53 PM: $ npm install && vite build
+1:41:54 PM: Failed during stage 'building site': Build script returned non-zero exit code: 2 (https://ntl.fyi/exit-code-2)
+1:41:54 PM: up to date, audited 732 packages in 1s
+1:41:54 PM: 116 packages are looking for funding
+1:41:54 PM:   run `npm fund` for details
+1:41:54 PM: found 0 vulnerabilities
+1:41:54 PM: bash: line 1: vite: command not found
+1:41:54 PM: ​
+1:41:54 PM: "build.command" failed                                        
+1:41:54 PM: ────────────────────────────────────────────────────────────────
+1:41:54 PM: ​
+1:41:54 PM:   Error message
+1:41:54 PM:   Command failed with exit code 127: npm install && vite build (https://ntl.fyi/exit-code-127)
+1:41:54 PM: ​
+1:41:54 PM:   Error location
+1:41:54 PM:   In build.command from netlify.toml:
+1:41:54 PM:   npm install && vite build
+1:41:54 PM: ​
+1:41:54 PM:   Resolved config
+1:41:54 PM:   build:
+1:41:54 PM:     command: npm install && vite build
+1:41:54 PM:     commandOrigin: config
+1:41:54 PM:     environment:
+1:41:54 PM:       - DATABASE_URL
+1:41:54 PM:       - NODE_ENV
+1:41:54 PM:       - NODE_VERSION
+1:41:54 PM:     publish: /opt/build/repo/dist
+1:41:54 PM:     publishOrigin: config
+1:41:54 PM:   functions:
+1:41:54 PM:     '*':
+1:41:54 PM:       external_node_modules:
+1:41:54 PM:         - '@neondatabase/serverless'
+1:41:54 PM:         - drizzle-orm
+1:41:54 PM:       node_bundler: esbuild
+1:41:54 PM:   functionsDirectory: /opt/build/repo/netlify/functions
+1:41:54 PM:   redirects:
+1:41:54 PM:     - from: /api/*
+      status: 200
+      to: /.netlify/functions/api?path=:splat
+    - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+1:41:54 PM: Build failed due to a user error: Build script returned non-zero exit code: 2
+1:41:54 PM: Failing build: Failed to build site
+1:41:55 PM: Finished processing build request in 25.886s
