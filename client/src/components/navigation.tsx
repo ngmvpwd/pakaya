@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConnectionStatus } from "@/components/connection-status";
 import { BackupButton } from "@/components/backup-button";
+import { RestoreButton } from "@/components/restore-button";
 import { getAuthState, logout } from "@/lib/auth";
 import { 
   BarChart3, 
@@ -111,9 +112,10 @@ export function Navigation({ isConnected = false }: NavigationProps) {
             {/* Connection Status */}
             <ConnectionStatus isConnected={isConnected} />
             
-            {/* Backup Button - Desktop */}
-            <div className="hidden lg:block">
+            {/* Backup/Restore Buttons - Desktop */}
+            <div className="hidden lg:flex items-center space-x-2">
               <BackupButton />
+              {user?.role === 'admin' && <RestoreButton />}
             </div>
             
             <ThemeToggle />
@@ -179,10 +181,11 @@ export function Navigation({ isConnected = false }: NavigationProps) {
                       );
                     })}
                     
-                    {/* Mobile Backup Button */}
+                    {/* Mobile Backup/Restore Buttons */}
                     <div className="pt-4 mt-4 border-t border-border">
-                      <div className="mb-3">
+                      <div className="mb-3 space-y-2">
                         <BackupButton />
+                        {user?.role === 'admin' && <RestoreButton />}
                       </div>
                       
                       {/* Mobile Logout */}

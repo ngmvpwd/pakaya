@@ -567,6 +567,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/backup/restore", async (req, res) => {
+    try {
+      const backup = req.body;
+
+      // Validate backup structure
+      if (!backup.metadata || !backup.data) {
+        return res.status(400).json({ message: "Invalid backup file format" });
+      }
+
+      // Clear existing data first
+      await db.delete(schema.attendanceRecords);
+      await db.delete(schema.alerts);
+      await db.delete(schema.holidays);
+      await db.delete(schema.teachers);
+      await db.delete(schema.departments);
+      await db.delete(schema.users);
+
+      // Restore data in correct order (respecting foreign key constraints)
+      if (backup.data.users && backup.data.users.length > 0) {
+        await db.insert(schema.users).values(backup.data.users);
+      }
+
+      if (backup.data.departments && backup.data.departments.length > 0) {
+        await db.insert(schema.departments).values(backup.data.departments);
+      }
+
+      if (backup.data.teachers && backup.data.teachers.length > 0) {
+        await db.insert(schema.teachers).values(backup.data.teachers);
+      }
+
+      if (backup.data.holidays && backup.data.holidays.length > 0) {
+        await db.insert(schema.holidays).values(backup.data.holidays);
+      }
+
+      if (backup.data.attendanceRecords && backup.data.attendanceRecords.length > 0) {
+        await db.insert(schema.attendanceRecords).values(backup.data.attendanceRecords);
+      }
+
+      if (backup.data.alerts && backup.data.alerts.length > 0) {
+        await db.insert(schema.alerts).values(backup.data.alerts);
+      }
+
+      // Broadcast restore completion to all connected clients
+      broadcastUpdate('database_restored', { 
+        timestamp: new Date().toISOString(),
+        recordsRestored: {
+          users: backup.data.users?.length || 0,
+          departments: backup.data.departments?.length || 0,
+          teachers: backup.data.teachers?.length || 0,
+          attendanceRecords: backup.data.attendanceRecords?.length || 0,
+          holidays: backup.data.holidays?.length || 0,
+          alerts: backup.data.alerts?.length || 0,
+        }
+      });
+
+      res.json({ 
+        message: "Database restored successfully",
+        restoredAt: new Date().toISOString(),
+        recordsRestored: {
+          users: backup.data.users?.length || 0,
+          departments: backup.data.departments?.length || 0,
+          teachers: backup.data.teachers?.length || 0,
+          attendanceRecords: backup.data.attendanceRecords?.length || 0,
+          holidays: backup.data.holidays?.length || 0,
+          alerts: backup.data.alerts?.length || 0,
+        }
+      });
+    } catch (error) {
+      console.error('Backup restore error:', error);
+      res.status(500).json({ message: "Failed to restore backup: " + (error as Error).message });
+    }
+  });
+
   // Export routes with absence totals - optimized for performance
   app.get("/api/export/attendance", async (req, res) => {
     try {
