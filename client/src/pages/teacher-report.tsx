@@ -40,11 +40,21 @@ interface TeacherReportData {
 
 export function TeacherReport() {
   const [location] = useLocation();
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const urlParams = new URLSearchParams(window.location.search);
   const teacherId = urlParams.get('teacherId');
   const teacherName = urlParams.get('name');
   const teacherDept = urlParams.get('department');
   const teacherIdText = urlParams.get('teacherIdText');
+
+  // Debug logging
+  console.log('Teacher Report Debug:', {
+    location,
+    search: window.location.search,
+    teacherId,
+    teacherName,
+    teacherDept,
+    teacherIdText
+  });
 
   const { data: reportData, isLoading, error } = useQuery<TeacherReportData>({
     queryKey: ['/api/teacher-report', teacherId],
