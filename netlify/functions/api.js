@@ -46,9 +46,13 @@ exports.handler = async (event, context) => {
     // Route handling
     let response;
     
+    // Auth routes
     if (path === '/auth/login' && method === 'POST') {
       response = await handleLogin(body);
-    } else if (path === '/teachers' && method === 'GET') {
+    }
+    
+    // Teacher routes
+    else if (path === '/teachers' && method === 'GET') {
       response = await handleGetTeachers();
     } else if (path === '/teachers' && method === 'POST') {
       response = await handleCreateTeacher(body);
@@ -58,38 +62,108 @@ exports.handler = async (event, context) => {
     } else if (path.startsWith('/teachers/') && method === 'DELETE') {
       const id = parseInt(path.split('/')[2]);
       response = await handleDeleteTeacher(id);
-    } else if (path === '/departments' && method === 'GET') {
+    }
+    
+    // Department routes
+    else if (path === '/departments' && method === 'GET') {
       response = await handleGetDepartments();
     } else if (path === '/departments' && method === 'POST') {
       response = await handleCreateDepartment(body);
-    } else if (path === '/stats/overview' && method === 'GET') {
+    } else if (path.startsWith('/departments/') && method === 'PUT') {
+      const id = parseInt(path.split('/')[2]);
+      response = await handleUpdateDepartment(id, body);
+    } else if (path.startsWith('/departments/') && method === 'DELETE') {
+      const id = parseInt(path.split('/')[2]);
+      response = await handleDeleteDepartment(id);
+    }
+    
+    // Stats routes
+    else if (path === '/stats/overview' && method === 'GET') {
       response = await handleStatsOverview();
     } else if (path === '/stats/trends' && method === 'GET') {
       const days = event.queryStringParameters?.days || '30';
       const startDate = event.queryStringParameters?.startDate;
       const endDate = event.queryStringParameters?.endDate;
       response = await handleStatsTrends(days, startDate, endDate);
-    } else if (path === '/attendance/date' && method === 'GET') {
+    } else if (path === '/stats/departments' && method === 'GET') {
+      response = await handleDepartmentStats();
+    } else if (path === '/stats/top-performers' && method === 'GET') {
+      const limit = event.queryStringParameters?.limit || '10';
+      response = await handleTopPerformers(parseInt(limit));
+    }
+    
+    // Attendance routes
+    else if (path === '/attendance/date' && method === 'GET') {
       const date = event.queryStringParameters?.date || new Date().toISOString().split('T')[0];
       response = await handleGetAttendanceByDate(date);
     } else if (path === '/attendance' && method === 'POST') {
       response = await handleCreateAttendance(body);
+    } else if (path === '/attendance/bulk' && method === 'POST') {
+      response = await handleBulkAttendance(body);
     } else if (path.startsWith('/attendance/') && method === 'PUT') {
       const id = parseInt(path.split('/')[2]);
       response = await handleUpdateAttendance(id, body);
-    } else if (path === '/alerts' && method === 'GET') {
+    } else if (path.startsWith('/attendance/teacher/') && method === 'GET') {
+      const teacherId = parseInt(path.split('/')[3]);
+      const startDate = event.queryStringParameters?.startDate;
+      const endDate = event.queryStringParameters?.endDate;
+      response = await handleGetTeacherAttendance(teacherId, startDate, endDate);
+    }
+    
+    // Analytics routes
+    else if (path === '/analytics/absent' && method === 'GET') {
+      const startDate = event.queryStringParameters?.startDate;
+      const endDate = event.queryStringParameters?.endDate;
+      response = await handleAbsentAnalytics(startDate, endDate);
+    } else if (path.startsWith('/analytics/teacher/') && path.endsWith('/pattern') && method === 'GET') {
+      const teacherId = parseInt(path.split('/')[3]);
+      const weeks = event.queryStringParameters?.weeks || '12';
+      response = await handleTeacherPattern(teacherId, parseInt(weeks));
+    }
+    
+    // Alert routes
+    else if (path === '/alerts' && method === 'GET') {
       response = await handleGetAlerts();
     } else if (path.startsWith('/alerts/') && method === 'POST') {
       const id = parseInt(path.split('/')[2]);
       response = await handleMarkAlertRead(id);
-    } else if (path === '/holidays' && method === 'GET') {
+    }
+    
+    // Holiday routes
+    else if (path === '/holidays' && method === 'GET') {
       response = await handleGetHolidays();
     } else if (path === '/holidays' && method === 'POST') {
       response = await handleCreateHoliday(body);
     } else if (path.startsWith('/holidays/') && path.endsWith('/check') && method === 'GET') {
       const date = path.split('/')[2];
       response = await handleCheckHoliday(date);
-    } else {
+    } else if (path.startsWith('/holidays/') && method === 'PUT') {
+      const id = parseInt(path.split('/')[2]);
+      response = await handleUpdateHoliday(id, body);
+    } else if (path.startsWith('/holidays/') && method === 'DELETE') {
+      const id = parseInt(path.split('/')[2]);
+      response = await handleDeleteHoliday(id);
+    }
+    
+    // Teacher Portal routes
+    else if (path === '/teacher-portal/login' && method === 'POST') {
+      response = await handleTeacherLogin(body);
+    } else if (path.startsWith('/teacher-portal/attendance/') && method === 'GET') {
+      const teacherId = parseInt(path.split('/')[3]);
+      response = await handleTeacherPortalAttendance(teacherId);
+    }
+    
+    // Export routes
+    else if (path === '/export/attendance' && method === 'POST') {
+      response = await handleExportAttendance(body);
+    }
+    
+    // Backup routes
+    else if (path === '/backup/stats' && method === 'GET') {
+      response = await handleBackupStats();
+    }
+    
+    else {
       response = { statusCode: 404, body: { message: 'Not found' } };
     }
 
