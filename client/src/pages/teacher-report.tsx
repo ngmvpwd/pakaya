@@ -97,21 +97,22 @@ export function TeacherReport() {
     );
   }
 
-  // Create fallback data from URL parameters if API fails
-  const fallbackTeacher = {
-    id: parseInt(teacherId || '0'),
-    name: teacherName || 'Unknown Teacher',
-    teacherId: teacherIdText || 'Unknown ID',
-    department: teacherDept || 'Unknown Department',
-    email: '',
-    phone: '',
-    joinDate: ''
-  };
+  if (error || !reportData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Report</h1>
+          <p className="text-gray-600">Unable to fetch teacher attendance data.</p>
+          <p className="text-gray-600">Please check the teacher ID and try again.</p>
+        </div>
+      </div>
+    );
+  }
 
-  const teacher = reportData?.teacher || fallbackTeacher;
-  const attendanceData = reportData?.attendanceData || [];
-  const stats = reportData?.stats || { total: 0, present: 0, halfDay: 0, absent: 0 };
-  const absenceTotals = reportData?.absenceTotals;
+  const teacher = reportData.teacher;
+  const attendanceData = reportData.attendanceData;
+  const stats = reportData.stats;
+  const absenceTotals = reportData.absenceTotals;
   const attendanceRate = stats.total > 0 
     ? Math.round(((stats.present + stats.halfDay * 0.5) / stats.total) * 100 * 10) / 10
     : 0;
@@ -228,7 +229,10 @@ export function TeacherReport() {
               </thead>
               <tbody>
                 {attendanceData.length > 0 ? (
-                  attendanceData.slice(0, 50).map((record) => (
+                  attendanceData
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .slice(0, 50)
+                    .map((record) => (
                     <tr key={record.id} className="even:bg-gray-50">
                       <td className="border border-gray-300 px-3 py-2">
                         {format(new Date(record.date), 'MMM dd, yyyy')}
