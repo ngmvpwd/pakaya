@@ -55,6 +55,16 @@ export const alerts = pgTable("alerts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  date: text("date").notNull().unique(), // YYYY-MM-DD format
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // 'public', 'school', 'emergency'
+  createdBy: integer("created_by").notNull(), // user id who created
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
@@ -94,14 +104,21 @@ export const insertAlertSchema = createInsertSchema(alerts).omit({
   createdAt: true,
 });
 
+export const insertHolidaySchema = createInsertSchema(holidays).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type Department = typeof departments.$inferSelect;
 export type Teacher = typeof teachers.$inferSelect;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type Alert = typeof alerts.$inferSelect;
+export type Holiday = typeof holidays.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type InsertTeacher = z.infer<typeof insertTeacherSchema>;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
+export type InsertHoliday = z.infer<typeof insertHolidaySchema>;

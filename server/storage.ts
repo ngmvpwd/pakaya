@@ -1,8 +1,8 @@
 import { db } from "./db";
 import { 
-  users, departments, teachers, attendanceRecords, alerts,
-  type User, type Department, type Teacher, type AttendanceRecord, type Alert,
-  type InsertUser, type InsertDepartment, type InsertTeacher, type InsertAttendance, type InsertAlert
+  users, departments, teachers, attendanceRecords, alerts, holidays,
+  type User, type Department, type Teacher, type AttendanceRecord, type Alert, type Holiday,
+  type InsertUser, type InsertDepartment, type InsertTeacher, type InsertAttendance, type InsertAlert, type InsertHoliday
 } from "@shared/schema";
 import { eq, and, or, sql, desc, asc, gte, lte, like, isNull } from "drizzle-orm";
 
@@ -70,6 +70,15 @@ export interface IStorage {
   getAlerts(limit?: number): Promise<(Alert & { teacher: Teacher })[]>;
   createAlert(alert: InsertAlert): Promise<Alert>;
   markAlertAsRead(id: number): Promise<void>;
+  
+  // Holiday methods
+  getAllHolidays(): Promise<Holiday[]>;
+  getHolidayByDate(date: string): Promise<Holiday | undefined>;
+  getHolidaysInRange(startDate: string, endDate: string): Promise<Holiday[]>;
+  createHoliday(holiday: InsertHoliday): Promise<Holiday>;
+  updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday | undefined>;
+  deleteHoliday(id: number): Promise<void>;
+  isHoliday(date: string): Promise<boolean>;
   
   // Analytics methods
   getTeacherAttendancePattern(teacherId: number, weeks: number): Promise<Array<{ week: string; rate: number }>>;
@@ -617,6 +626,46 @@ export class DatabaseStorage implements IStorage {
 
   async markAlertAsRead(id: number): Promise<void> {
     await db.update(alerts).set({ isRead: true }).where(eq(alerts.id, id));
+  }
+
+  // Holiday methods
+  async getAllHolidays(): Promise<Holiday[]> {
+    return await db.select().from(holidays).orderBy(asc(holidays.date));
+  }
+
+  async getHolidayByDate(date: string): Promise<Holiday | undefined> {
+    const result = await db.select().from(holidays).where(eq(holidays.date, date)).limit(1);
+    return result[0];
+  }
+
+  async getHolidaysInRange(startDate: string, endDate: string): Promise<Holiday[]> {
+    return await db
+      .select()
+      .from(holidays)
+      .where(and(
+        sql`${holidays.date} >= ${startDate}`,
+        sql`${holidays.date} <= ${endDate}`
+      ))
+      .orderBy(asc(holidays.date));
+  }
+
+  async createHoliday(holiday: InsertHoliday): Promise<Holiday> {
+    const result = await db.insert(holidays).values(holiday).returning();
+    return result[0];
+  }
+
+  async updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday | undefined> {
+    const result = await db.update(holidays).set(holiday).where(eq(holidays.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteHoliday(id: number): Promise<void> {
+    await db.delete(holidays).where(eq(holidays.id, id));
+  }
+
+  async isHoliday(date: string): Promise<boolean> {
+    const result = await db.select({ id: holidays.id }).from(holidays).where(eq(holidays.date, date)).limit(1);
+    return result.length > 0;
   }
 
   async getTeacherAttendancePattern(teacherId: number, weeks: number): Promise<Array<{ week: string; rate: number }>> {
