@@ -55,12 +55,20 @@ NODE_ENV = production
 2. Wait for build completion (2-3 minutes)
 3. System automatically creates admin account and sample data
 
-## Step 6: First Login
-Visit your Netlify URL and login with:
-- **Username**: `admin`
-- **Password**: `admin123`
+## Step 6: First Login and Testing
+1. Visit your Netlify URL (e.g., `yoursite.netlify.app`)
+2. The system will automatically initialize the database on first API call
+3. Login with:
+   - **Username**: `admin`
+   - **Password**: `admin123`
 
 **Important**: Change this password immediately after first login!
+
+### If Login Fails:
+1. Check Netlify function logs in dashboard
+2. Verify DATABASE_URL environment variable is set correctly
+3. Ensure database accepts external connections
+4. Wait 1-2 minutes for function cold start
 
 ## Features Included
 ✅ **Complete attendance tracking** for unlimited teachers  
