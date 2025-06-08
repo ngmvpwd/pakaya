@@ -259,14 +259,26 @@ export default function Attendance() {
 
   const pageActions = (
     <>
-      <Button 
-        onClick={() => handleBulkAttendance('present')}
-        disabled={bulkAttendanceMutation.isPending}
-        className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 h-11"
-      >
-        <Check className="mr-2 h-4 w-4" />
-        Mark All Present
-      </Button>
+      {!isHoliday && (
+        <Button 
+          onClick={() => handleBulkAttendance('present')}
+          disabled={bulkAttendanceMutation.isPending}
+          className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 h-11"
+        >
+          <Check className="mr-2 h-4 w-4" />
+          Mark All Present
+        </Button>
+      )}
+      {user?.role === 'admin' && !isHoliday && (
+        <Button 
+          variant="outline"
+          onClick={() => setHolidayDialogOpen(true)}
+          className="h-11"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Mark as Holiday
+        </Button>
+      )}
       <Button 
         variant="outline"
         onClick={handleExport}
@@ -284,6 +296,24 @@ export default function Attendance() {
       description="Record daily attendance for all teachers"
       actions={pageActions}
     >
+      {/* Holiday Banner */}
+      {isHoliday && holidayDetails && (
+        <Card className="bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <div>
+                <h3 className="font-semibold text-orange-900 dark:text-orange-100">
+                  Holiday: {holidayDetails.name}
+                </h3>
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  {holidayDetails.description || "No attendance marking required for this day"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
         {/* Date Selection & Filters */}
         <Card className="shadow-elegant">
@@ -489,6 +519,71 @@ export default function Attendance() {
               </Button>
               <Button onClick={handleAbsentWithCategory} disabled={updateAttendanceMutation.isPending}>
                 {updateAttendanceMutation.isPending ? 'Updating...' : 'Mark Absent'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Holiday Creation Dialog */}
+      <Dialog open={holidayDialogOpen} onOpenChange={setHolidayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark as Holiday</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Date</label>
+              <Input value={format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')} disabled />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Holiday Name</label>
+              <Input 
+                placeholder="e.g., New Year's Day, School Break"
+                id="holiday-name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Type</label>
+              <Select defaultValue="school">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public Holiday</SelectItem>
+                  <SelectItem value="school">School Holiday</SelectItem>
+                  <SelectItem value="emergency">Emergency Closure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description (Optional)</label>
+              <Input 
+                placeholder="Additional details"
+                id="holiday-description"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setHolidayDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  const name = (document.getElementById('holiday-name') as HTMLInputElement)?.value;
+                  const description = (document.getElementById('holiday-description') as HTMLInputElement)?.value;
+                  const type = (document.querySelector('[data-state="open"] [role="combobox"]') as any)?.textContent || 'school';
+                  
+                  if (name) {
+                    createHolidayMutation.mutate({ 
+                      name, 
+                      description: description || undefined, 
+                      type: type.toLowerCase().replace(' ', '_') 
+                    });
+                  }
+                }}
+                disabled={createHolidayMutation.isPending}
+              >
+                {createHolidayMutation.isPending ? 'Creating...' : 'Create Holiday'}
               </Button>
             </div>
           </div>
