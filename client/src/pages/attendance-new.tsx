@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { exportAttendanceData } from "@/lib/api";
 import { getAuthState } from "@/lib/auth";
-import { Check, Clock, X, Download, Search, Edit, Users, Calendar } from "lucide-react";
+import { Check, Clock, X, Download, Search, Edit, Users, Calendar, AlertTriangle, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Teacher } from "@shared/schema";
 
@@ -38,6 +38,7 @@ export default function Attendance() {
   const [absentDialogOpen, setAbsentDialogOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<number | null>(null);
   const [selectedAbsentCategory, setSelectedAbsentCategory] = useState<'official_leave' | 'irregular_leave' | 'sick_leave'>('official_leave');
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getAuthState().user;
@@ -50,6 +51,55 @@ export default function Attendance() {
     queryKey: ['/api/attendance/date', selectedDate],
     queryFn: () => fetch(`/api/attendance/date?date=${selectedDate}`).then(res => res.json()),
     enabled: !!selectedDate,
+  });
+
+  // Check if selected date is a holiday
+  const { data: holidayCheck } = useQuery({
+    queryKey: ['/api/holidays', selectedDate, 'check'],
+    queryFn: async () => {
+      const response = await fetch(`/api/holidays/${selectedDate}/check`);
+      return response.json();
+    },
+    enabled: !!selectedDate,
+  });
+
+  // Get holiday details for the selected date
+  const { data: holidayDetails } = useQuery({
+    queryKey: ['/api/holidays', selectedDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/holidays/${selectedDate}`);
+      return response.json();
+    },
+    enabled: !!selectedDate,
+  });
+
+  const isHoliday = holidayCheck?.isHoliday || false;
+
+  // Mutation to create a holiday
+  const createHolidayMutation = useMutation({
+    mutationFn: async (data: { name: string; description?: string; type: string }) => {
+      return apiRequest('POST', '/api/holidays', {
+        date: selectedDate,
+        createdBy: user?.id || 1,
+        ...data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/holidays', selectedDate, 'check'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/holidays', selectedDate] });
+      setHolidayDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Holiday created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create holiday",
+        variant: "destructive",
+      });
+    },
   });
 
   const bulkAttendanceMutation = useMutation({
