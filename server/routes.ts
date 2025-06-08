@@ -955,17 +955,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const teacherId = parseInt(req.params.teacherId);
       
+      if (isNaN(teacherId)) {
+        return res.status(400).json({ message: "Invalid teacher ID" });
+      }
+      
+      console.log(`Fetching teacher report for teacherId: ${teacherId}`);
+      
       // Get teacher info
       const teacher = await storage.getTeacherById(teacherId);
       if (!teacher) {
+        console.log(`Teacher not found with ID: ${teacherId}`);
         return res.status(404).json({ message: "Teacher not found" });
       }
 
+      console.log(`Found teacher: ${teacher.name}`);
+
       // Get attendance data
       const attendanceData = await storage.getAttendanceByTeacher(teacherId);
+      console.log(`Retrieved ${attendanceData.length} attendance records`);
       
       // Get absence totals
       const absenceTotals = await storage.getTeacherAbsenceTotals(teacherId);
+      console.log(`Retrieved absence totals:`, absenceTotals);
 
       // Calculate stats
       const stats = attendanceData.reduce(
@@ -979,15 +990,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { total: 0, present: 0, halfDay: 0, absent: 0 }
       );
 
-      res.json({
+      console.log(`Calculated stats:`, stats);
+
+      const response = {
         teacher,
         attendanceData,
         stats,
         absenceTotals
-      });
+      };
+
+      res.json(response);
     } catch (error) {
       console.error('Teacher report error:', error);
-      res.status(500).json({ message: "Failed to generate teacher report" });
+      res.status(500).json({ 
+        message: "Failed to generate teacher report",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

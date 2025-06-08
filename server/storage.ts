@@ -418,71 +418,76 @@ export class DatabaseStorage implements IStorage {
     sickLeave: number;
     shortLeave: number;
   }> {
-    let whereConditions = [eq(attendanceRecords.teacherId, teacherId)];
-
-    if (startDate && endDate) {
-      whereConditions.push(
-        sql`${attendanceRecords.date} >= ${startDate}`,
-        sql`${attendanceRecords.date} <= ${endDate}`
-      );
-    }
-
-    let query;
-    if (startDate && endDate) {
-      query = db
-        .select({
-          status: attendanceRecords.status,
-          absentCategory: attendanceRecords.absentCategory,
-          count: sql<number>`count(*)`
-        })
-        .from(attendanceRecords)
-        .where(and(
-          eq(attendanceRecords.teacherId, teacherId),
-          sql`${attendanceRecords.date} >= ${startDate}`,
-          sql`${attendanceRecords.date} <= ${endDate}`
-        ));
-    } else {
-      query = db
-        .select({
-          status: attendanceRecords.status,
-          absentCategory: attendanceRecords.absentCategory,
-          count: sql<number>`count(*)`
-        })
-        .from(attendanceRecords)
-        .where(eq(attendanceRecords.teacherId, teacherId));
-    }
-    
-    const result = await query.groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
-
-    const totals = {
-      totalAbsences: 0,
-      officialLeave: 0,
-      privateLeave: 0,
-      sickLeave: 0,
-      shortLeave: 0,
-    };
-
-    result.forEach(row => {
-      const count = parseInt(row.count.toString()) || 0;
-      if (row.status === 'absent') {
-        totals.totalAbsences += count;
-        switch (row.absentCategory) {
-          case 'official_leave':
-            totals.officialLeave += count;
-            break;
-          case 'private_leave':
-            totals.privateLeave += count;
-            break;
-          case 'sick_leave':
-            totals.sickLeave += count;
-            break;
-        }
-      } else if (row.status === 'short_leave') {
-        totals.shortLeave += count;
+    try {
+      let query;
+      if (startDate && endDate) {
+        query = db
+          .select({
+            status: attendanceRecords.status,
+            absentCategory: attendanceRecords.absentCategory,
+            count: sql<number>`count(*)`
+          })
+          .from(attendanceRecords)
+          .where(and(
+            eq(attendanceRecords.teacherId, teacherId),
+            sql`${attendanceRecords.date} >= ${startDate}`,
+            sql`${attendanceRecords.date} <= ${endDate}`
+          ));
+      } else {
+        query = db
+          .select({
+            status: attendanceRecords.status,
+            absentCategory: attendanceRecords.absentCategory,
+            count: sql<number>`count(*)`
+          })
+          .from(attendanceRecords)
+          .where(eq(attendanceRecords.teacherId, teacherId));
       }
-    });
+      
+      const result = await query.groupBy(attendanceRecords.status, attendanceRecords.absentCategory);
 
-    return totals;
+      const totals = {
+        totalAbsences: 0,
+        officialLeave: 0,
+        privateLeave: 0,
+        sickLeave: 0,
+        shortLeave: 0,
+      };
+
+      if (result && Array.isArray(result)) {
+        result.forEach(row => {
+          const count = parseInt(row.count?.toString() || '0') || 0;
+          if (row.status === 'absent') {
+            totals.totalAbsences += count;
+            switch (row.absentCategory) {
+              case 'official_leave':
+                totals.officialLeave += count;
+                break;
+              case 'private_leave':
+                totals.privateLeave += count;
+                break;
+              case 'sick_leave':
+                totals.sickLeave += count;
+                break;
+            }
+          } else if (row.status === 'short_leave') {
+            totals.shortLeave += count;
+          }
+        });
+      }
+
+      return totals;
+    } catch (error) {
+      console.error('Error getting teacher absence totals for teacherId:', teacherId, error);
+      // Return empty totals instead of throwing to prevent PDF generation failure
+      return {
+        totalAbsences: 0,
+        officialLeave: 0,
+        privateLeave: 0,
+        sickLeave: 0,
+        shortLeave: 0,
+      };
+    }
   }
 
   async getAttendanceExportData(startDate?: string, endDate?: string): Promise<Array<{

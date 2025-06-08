@@ -49,12 +49,46 @@ export function TeacherReport() {
   const { data: reportData, isLoading, error } = useQuery<TeacherReportData>({
     queryKey: ['/api/teacher-report', teacherId],
     queryFn: async () => {
-      const response = await fetch(`/api/teacher-report/${teacherId}`);
-      if (!response.ok) throw new Error('Failed to fetch teacher report');
-      return response.json();
+      if (!teacherId) {
+        throw new Error('Teacher ID is required');
+      }
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      try {
+        const response = await fetch(`/api/teacher-report/${teacherId}`, {
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch teacher report`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.teacher) {
+          throw new Error('Invalid teacher data received');
+        }
+        
+        return data;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
+        throw err;
+      }
     },
     enabled: !!teacherId,
-    retry: 1,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   useEffect(() => {
@@ -97,16 +131,37 @@ export function TeacherReport() {
     );
   }
 
-  if (error || !reportData) {
+  if (error || (!reportData && !isLoading)) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Report</h1>
-          <p className="text-gray-600">Unable to fetch teacher attendance data.</p>
-          <p className="text-gray-600">Please check the teacher ID and try again.</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-700 font-medium">Error Details:</p>
+            <p className="text-red-600 text-sm mt-1">{errorMessage}</p>
+          </div>
+          <div className="text-gray-600 space-y-2">
+            <p>Unable to fetch teacher attendance data.</p>
+            <p>Teacher ID: {teacherId || 'Not provided'}</p>
+            <p>Please verify the teacher ID and try again.</p>
+          </div>
+          <div className="mt-6">
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Retry Loading Report
+            </Button>
+          </div>
         </div>
       </div>
     );
+  }
+
+  if (!reportData) {
+    return null; // This shouldn't happen due to the error check above
   }
 
   const teacher = reportData.teacher;
