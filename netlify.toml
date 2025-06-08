@@ -1,6 +1,6 @@
 [build]
   publish = "dist/public"
-  command = "npm install && ./node_modules/.bin/vite build"
+  command = "npm ci && npm install --production=false && node_modules/.bin/vite build"
 
 [build.environment]
   NODE_VERSION = "18.19.0"
