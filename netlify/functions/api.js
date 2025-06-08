@@ -69,7 +69,27 @@ exports.handler = async (event, context) => {
     // Initialize database on first run
     await initializeDatabase();
     
-    const path = event.path.replace('/.netlify/functions/api', '');
+    // Extract path from Netlify event - handle various routing scenarios
+    let path = '';
+    
+    // Primary path extraction methods
+    if (event.path && event.path.includes('/api/')) {
+      path = event.path.split('/api')[1] || '';
+    } else if (event.rawUrl && event.rawUrl.includes('/api/')) {
+      path = event.rawUrl.split('/api')[1] || '';
+    } else if (event.pathParameters && event.pathParameters.proxy) {
+      path = '/' + event.pathParameters.proxy;
+    }
+    
+    // Debug logging for path resolution
+    console.log('Event details:', {
+      path: event.path,
+      rawUrl: event.rawUrl,
+      pathParameters: event.pathParameters,
+      extractedPath: path,
+      method: event.httpMethod
+    });
+    
     const method = event.httpMethod;
     
     // Parse request body if present

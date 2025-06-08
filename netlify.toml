@@ -6,8 +6,13 @@
   NODE_VERSION = "20"
 
 [[redirects]]
+  from = "/api/login"
+  to = "/.netlify/functions/login"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
