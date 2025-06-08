@@ -6,6 +6,7 @@ import { insertAttendanceSchema, insertTeacherSchema, insertDepartmentSchema, in
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 import puppeteer from "puppeteer";
 
 const loginSchema = z.object({
@@ -509,6 +510,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(exportData);
     } catch (error) {
       res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  // Backup routes
+  app.get("/api/backup/stats", async (req, res) => {
+    try {
+      const teachers = await storage.getAllTeachers();
+      const departments = await storage.getAllDepartments();
+      const holidays = await storage.getAllHolidays();
+      const alerts = await storage.getAlerts(1000); // Get all alerts for count
+      
+      // Get attendance records count
+      const attendanceRecords = await db.select().from(schema.attendanceRecords);
+      const users = await db.select().from(schema.users);
+      
+      res.json({
+        teachers: teachers.length,
+        departments: departments.length,
+        attendanceRecords: attendanceRecords.length,
+        holidays: holidays.length,
+        alerts: alerts.length,
+        users: users.length,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get backup stats" });
+    }
+  });
+
+  app.post("/api/backup/create", async (req, res) => {
+    try {
+      // Create comprehensive backup
+      const backup = {
+        metadata: {
+          version: "1.0",
+          createdAt: new Date().toISOString(),
+          school: "School Attendance Management System",
+          description: "Complete database backup including all tables and data"
+        },
+        data: {
+          users: await db.select().from(schema.users),
+          departments: await storage.getAllDepartments(),
+          teachers: await storage.getAllTeachers(),
+          attendanceRecords: await db.select().from(schema.attendanceRecords),
+          holidays: await storage.getAllHolidays(),
+          alerts: await storage.getAlerts(10000), // Get all alerts
+        }
+      };
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="school-attendance-backup-${new Date().toISOString().split('T')[0]}.json"`);
+      res.json(backup);
+    } catch (error) {
+      console.error('Backup creation error:', error);
+      res.status(500).json({ message: "Failed to create backup" });
     }
   });
 

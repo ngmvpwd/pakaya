@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConnectionStatus } from "@/components/connection-status";
+import { BackupButton } from "@/components/backup-button";
 import { getAuthState, logout } from "@/lib/auth";
 import { 
   BarChart3, 
@@ -109,6 +110,11 @@ export function Navigation({ isConnected = false }: NavigationProps) {
           <div className="flex items-center space-x-2">
             {/* Connection Status */}
             <ConnectionStatus isConnected={isConnected} />
+            
+            {/* Backup Button - Desktop */}
+            <div className="hidden lg:block">
+              <BackupButton />
+            </div>
             
             <ThemeToggle />
             
