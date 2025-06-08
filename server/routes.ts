@@ -576,6 +576,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid backup file format" });
       }
 
+      // Helper function to convert string timestamps to Date objects
+      const convertTimestamps = (records: any[], timestampFields: string[]) => {
+        return records.map(record => {
+          const converted = { ...record };
+          timestampFields.forEach(field => {
+            if (converted[field] && typeof converted[field] === 'string') {
+              converted[field] = new Date(converted[field]);
+            }
+          });
+          return converted;
+        });
+      };
+
       // Clear existing data first
       await db.delete(schema.attendanceRecords);
       await db.delete(schema.alerts);
@@ -586,27 +599,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Restore data in correct order (respecting foreign key constraints)
       if (backup.data.users && backup.data.users.length > 0) {
-        await db.insert(schema.users).values(backup.data.users);
+        const convertedUsers = convertTimestamps(backup.data.users, ['createdAt', 'updatedAt']);
+        await db.insert(schema.users).values(convertedUsers);
       }
 
       if (backup.data.departments && backup.data.departments.length > 0) {
-        await db.insert(schema.departments).values(backup.data.departments);
+        const convertedDepartments = convertTimestamps(backup.data.departments, ['createdAt', 'updatedAt']);
+        await db.insert(schema.departments).values(convertedDepartments);
       }
 
       if (backup.data.teachers && backup.data.teachers.length > 0) {
-        await db.insert(schema.teachers).values(backup.data.teachers);
+        const convertedTeachers = convertTimestamps(backup.data.teachers, ['createdAt', 'updatedAt', 'joinDate']);
+        await db.insert(schema.teachers).values(convertedTeachers);
       }
 
       if (backup.data.holidays && backup.data.holidays.length > 0) {
-        await db.insert(schema.holidays).values(backup.data.holidays);
+        const convertedHolidays = convertTimestamps(backup.data.holidays, ['createdAt', 'updatedAt']);
+        await db.insert(schema.holidays).values(convertedHolidays);
       }
 
       if (backup.data.attendanceRecords && backup.data.attendanceRecords.length > 0) {
-        await db.insert(schema.attendanceRecords).values(backup.data.attendanceRecords);
+        const convertedAttendance = convertTimestamps(backup.data.attendanceRecords, ['createdAt', 'updatedAt']);
+        await db.insert(schema.attendanceRecords).values(convertedAttendance);
       }
 
       if (backup.data.alerts && backup.data.alerts.length > 0) {
-        await db.insert(schema.alerts).values(backup.data.alerts);
+        const convertedAlerts = convertTimestamps(backup.data.alerts, ['createdAt', 'updatedAt']);
+        await db.insert(schema.alerts).values(convertedAlerts);
       }
 
       // Broadcast restore completion to all connected clients
