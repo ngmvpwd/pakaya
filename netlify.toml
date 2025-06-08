@@ -1,9 +1,9 @@
 [build]
   publish = "dist"
-  command = "vite build"
+  command = "npm install && vite build"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "18.19.0"
 
 [[redirects]]
   from = "/api/*"
@@ -18,3 +18,4 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  external_node_modules = ["@neondatabase/serverless", "drizzle-orm"]
