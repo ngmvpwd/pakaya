@@ -160,8 +160,16 @@ export function TeacherReport() {
     );
   }
 
+  // TypeScript guard - this should not happen due to error check above
   if (!reportData) {
-    return null; // This shouldn't happen due to the error check above
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">No Data Available</h1>
+          <p className="text-gray-600">Report data is not available.</p>
+        </div>
+      </div>
+    );
   }
 
   const teacher = reportData.teacher;
