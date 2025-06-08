@@ -11,6 +11,42 @@ const schema = require('../../shared/schema-compiled.js');
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle({ client: pool, schema });
 
+// Database initialization
+let isInitialized = false;
+
+async function initializeDatabase() {
+  if (isInitialized) return;
+  
+  try {
+    // Check if admin user exists
+    const adminUser = await db.select().from(schema.users).where(eq(schema.users.username, 'admin')).limit(1);
+    
+    if (adminUser.length === 0) {
+      // Create admin user
+      await db.insert(schema.users).values({
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin',
+        name: 'System Administrator'
+      });
+      
+      // Create some default departments
+      const depts = await db.insert(schema.departments).values([
+        { name: 'Mathematics', description: 'Mathematics Department' },
+        { name: 'Science', description: 'Science Department' },
+        { name: 'English', description: 'English Department' },
+        { name: 'History', description: 'History Department' },
+        { name: 'Computer Science', description: 'Computer Science Department' }
+      ]).returning();
+    }
+    
+    isInitialized = true;
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    // Don't throw error to avoid breaking the function
+  }
+}
+
 // Helper function to handle CORS
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,6 +66,9 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Initialize database on first run
+    await initializeDatabase();
+    
     const path = event.path.replace('/.netlify/functions/api', '');
     const method = event.httpMethod;
     
@@ -415,4 +454,288 @@ async function handleCreateHoliday(body) {
 async function handleCheckHoliday(date) {
   const holiday = await db.select().from(schema.holidays).where(eq(schema.holidays.date, date)).limit(1);
   return { statusCode: 200, body: { isHoliday: holiday.length > 0 } };
+}
+
+async function handleUpdateDepartment(id, body) {
+  const department = await db.update(schema.departments).set(body).where(eq(schema.departments.id, id)).returning();
+  if (department.length === 0) {
+    return { statusCode: 404, body: { message: 'Department not found' } };
+  }
+  return { statusCode: 200, body: department[0] };
+}
+
+async function handleDeleteDepartment(id) {
+  await db.delete(schema.departments).where(eq(schema.departments.id, id));
+  return { statusCode: 204, body: null };
+}
+
+async function handleDepartmentStats() {
+  const departmentStats = await db.select({
+    department: schema.teachers.department,
+    teacherCount: count(schema.teachers.id),
+    attendanceData: sql`COUNT(CASE WHEN attendance_records.status = 'present' THEN 1 END)`.as('presentCount'),
+    totalRecords: sql`COUNT(attendance_records.id)`.as('totalRecords')
+  })
+  .from(schema.teachers)
+  .leftJoin(schema.attendanceRecords, eq(schema.teachers.id, schema.attendanceRecords.teacherId))
+  .groupBy(schema.teachers.department);
+
+  const stats = departmentStats.map(dept => {
+    const attendanceRate = dept.totalRecords > 0 ? (dept.attendanceData / dept.totalRecords) * 100 : 0;
+    return {
+      department: dept.department,
+      teacherCount: dept.teacherCount,
+      attendanceRate: Math.round(attendanceRate * 100) / 100
+    };
+  });
+
+  return { statusCode: 200, body: stats };
+}
+
+async function handleTopPerformers(limit) {
+  const performers = await db.select({
+    teacherId: schema.teachers.id,
+    teacherName: schema.teachers.name,
+    department: schema.teachers.department,
+    presentCount: sql`COUNT(CASE WHEN attendance_records.status = 'present' THEN 1 END)`.as('presentCount'),
+    totalRecords: sql`COUNT(attendance_records.id)`.as('totalRecords')
+  })
+  .from(schema.teachers)
+  .leftJoin(schema.attendanceRecords, eq(schema.teachers.id, schema.attendanceRecords.teacherId))
+  .groupBy(schema.teachers.id, schema.teachers.name, schema.teachers.department)
+  .orderBy(sql`(COUNT(CASE WHEN attendance_records.status = 'present' THEN 1 END) * 1.0 / NULLIF(COUNT(attendance_records.id), 0)) DESC`)
+  .limit(limit);
+
+  const topPerformers = performers.map(p => ({
+    teacher: {
+      id: p.teacherId,
+      name: p.teacherName,
+      department: p.department
+    },
+    attendanceRate: p.totalRecords > 0 ? Math.round((p.presentCount / p.totalRecords) * 10000) / 100 : 0
+  }));
+
+  return { statusCode: 200, body: topPerformers };
+}
+
+async function handleBulkAttendance(body) {
+  const { records } = body;
+  if (!Array.isArray(records)) {
+    return { statusCode: 400, body: { message: 'Records must be an array' } };
+  }
+
+  const results = [];
+  for (const record of records) {
+    try {
+      const inserted = await db.insert(schema.attendanceRecords).values(record).returning();
+      results.push(inserted[0]);
+    } catch (error) {
+      console.error('Error inserting record:', error);
+    }
+  }
+
+  return { statusCode: 201, body: results };
+}
+
+async function handleGetTeacherAttendance(teacherId, startDate, endDate) {
+  let dateCondition = eq(schema.attendanceRecords.teacherId, teacherId);
+  
+  if (startDate && endDate) {
+    dateCondition = and(
+      eq(schema.attendanceRecords.teacherId, teacherId),
+      gte(schema.attendanceRecords.date, startDate),
+      lte(schema.attendanceRecords.date, endDate)
+    );
+  }
+
+  const attendance = await db.select()
+    .from(schema.attendanceRecords)
+    .where(dateCondition)
+    .orderBy(desc(schema.attendanceRecords.date));
+
+  return { statusCode: 200, body: attendance };
+}
+
+async function handleAbsentAnalytics(startDate, endDate) {
+  let dateCondition = eq(schema.attendanceRecords.status, 'absent');
+  
+  if (startDate && endDate) {
+    dateCondition = and(
+      eq(schema.attendanceRecords.status, 'absent'),
+      gte(schema.attendanceRecords.date, startDate),
+      lte(schema.attendanceRecords.date, endDate)
+    );
+  }
+
+  const absentRecords = await db.select({
+    date: schema.attendanceRecords.date,
+    category: schema.attendanceRecords.absentCategory,
+    count: count()
+  })
+  .from(schema.attendanceRecords)
+  .where(dateCondition)
+  .groupBy(schema.attendanceRecords.date, schema.attendanceRecords.absentCategory)
+  .orderBy(schema.attendanceRecords.date);
+
+  const analytics = {
+    totalAbsent: 0,
+    officialLeave: 0,
+    irregularLeave: 0,
+    sickLeave: 0,
+    categorizedAbsences: absentRecords
+  };
+
+  absentRecords.forEach(record => {
+    analytics.totalAbsent += record.count;
+    switch (record.category) {
+      case 'official_leave': analytics.officialLeave += record.count; break;
+      case 'irregular_leave': analytics.irregularLeave += record.count; break;
+      case 'sick_leave': analytics.sickLeave += record.count; break;
+    }
+  });
+
+  return { statusCode: 200, body: analytics };
+}
+
+async function handleTeacherPattern(teacherId, weeks) {
+  const weeksAgo = new Date();
+  weeksAgo.setDate(weeksAgo.getDate() - (weeks * 7));
+  const startDateStr = weeksAgo.toISOString().split('T')[0];
+
+  const pattern = await db.select({
+    week: sql`strftime('%Y-W%W', date)`.as('week'),
+    presentCount: sql`COUNT(CASE WHEN status = 'present' THEN 1 END)`.as('presentCount'),
+    totalCount: sql`COUNT(*)`.as('totalCount')
+  })
+  .from(schema.attendanceRecords)
+  .where(and(
+    eq(schema.attendanceRecords.teacherId, teacherId),
+    gte(schema.attendanceRecords.date, startDateStr)
+  ))
+  .groupBy(sql`strftime('%Y-W%W', date)`)
+  .orderBy(sql`strftime('%Y-W%W', date)`);
+
+  const patternData = pattern.map(p => ({
+    week: p.week,
+    rate: p.totalCount > 0 ? Math.round((p.presentCount / p.totalCount) * 10000) / 100 : 0
+  }));
+
+  return { statusCode: 200, body: patternData };
+}
+
+async function handleTeacherLogin(body) {
+  const { username, password } = body;
+  
+  if (!username || !password) {
+    return { statusCode: 400, body: { message: 'Username and password required' } };
+  }
+
+  const teacher = await db.select()
+    .from(schema.teachers)
+    .where(and(
+      eq(schema.teachers.username, username),
+      eq(schema.teachers.isPortalEnabled, true)
+    ))
+    .limit(1);
+
+  if (teacher.length === 0) {
+    return { statusCode: 401, body: { message: 'Invalid credentials or portal not enabled' } };
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, teacher[0].password || '');
+  if (!isPasswordValid) {
+    return { statusCode: 401, body: { message: 'Invalid credentials' } };
+  }
+
+  return {
+    statusCode: 200,
+    body: {
+      teacher: {
+        id: teacher[0].id,
+        name: teacher[0].name,
+        teacherId: teacher[0].teacherId,
+        department: teacher[0].department
+      }
+    }
+  };
+}
+
+async function handleTeacherPortalAttendance(teacherId) {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+
+  const attendance = await db.select()
+    .from(schema.attendanceRecords)
+    .where(and(
+      eq(schema.attendanceRecords.teacherId, teacherId),
+      gte(schema.attendanceRecords.date, startDate)
+    ))
+    .orderBy(desc(schema.attendanceRecords.date));
+
+  return { statusCode: 200, body: attendance };
+}
+
+async function handleExportAttendance(body) {
+  const { startDate, endDate, format = 'json' } = body;
+  
+  let dateCondition = sql`1=1`;
+  if (startDate && endDate) {
+    dateCondition = and(
+      gte(schema.attendanceRecords.date, startDate),
+      lte(schema.attendanceRecords.date, endDate)
+    );
+  }
+
+  const exportData = await db.select({
+    teacherId: schema.teachers.teacherId,
+    teacherName: schema.teachers.name,
+    department: schema.teachers.department,
+    date: schema.attendanceRecords.date,
+    status: schema.attendanceRecords.status,
+    checkInTime: schema.attendanceRecords.checkInTime,
+    checkOutTime: schema.attendanceRecords.checkOutTime,
+    notes: schema.attendanceRecords.notes,
+    absentCategory: schema.attendanceRecords.absentCategory
+  })
+  .from(schema.attendanceRecords)
+  .innerJoin(schema.teachers, eq(schema.attendanceRecords.teacherId, schema.teachers.id))
+  .where(dateCondition)
+  .orderBy(schema.attendanceRecords.date, schema.teachers.name);
+
+  return { statusCode: 200, body: exportData };
+}
+
+async function handleBackupStats() {
+  const [teacherCount] = await db.select({ count: count() }).from(schema.teachers);
+  const [departmentCount] = await db.select({ count: count() }).from(schema.departments);
+  const [attendanceCount] = await db.select({ count: count() }).from(schema.attendanceRecords);
+  const [holidayCount] = await db.select({ count: count() }).from(schema.holidays);
+  const [alertCount] = await db.select({ count: count() }).from(schema.alerts);
+  const [userCount] = await db.select({ count: count() }).from(schema.users);
+
+  return {
+    statusCode: 200,
+    body: {
+      teachers: teacherCount.count,
+      departments: departmentCount.count,
+      attendanceRecords: attendanceCount.count,
+      holidays: holidayCount.count,
+      alerts: alertCount.count,
+      users: userCount.count
+    }
+  };
+}
+
+async function handleUpdateHoliday(id, body) {
+  const holiday = await db.update(schema.holidays).set(body).where(eq(schema.holidays.id, id)).returning();
+  if (holiday.length === 0) {
+    return { statusCode: 404, body: { message: 'Holiday not found' } };
+  }
+  return { statusCode: 200, body: holiday[0] };
+}
+
+async function handleDeleteHoliday(id) {
+  await db.delete(schema.holidays).where(eq(schema.holidays.id, id));
+  return { statusCode: 204, body: null };
 }
