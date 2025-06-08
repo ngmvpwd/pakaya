@@ -15,6 +15,7 @@ import Analytics from "@/pages/analytics";
 import Teachers from "@/pages/teachers";
 import ManageTeachers from "@/pages/manage-teachers";
 import ManageDepartments from "@/pages/manage-departments";
+import Holidays from "@/pages/holidays";
 import { PrintReport } from "@/pages/print-report";
 import { TeacherPortal } from "@/pages/teacher-portal";
 import { TeacherReport } from "@/pages/teacher-report";
@@ -36,6 +37,7 @@ function AuthenticatedApp() {
           <Route path="/teachers" component={Teachers} />
           <Route path="/manage-teachers" component={ManageTeachers} />
           <Route path="/manage-departments" component={ManageDepartments} />
+          <Route path="/holidays" component={Holidays} />
           <Route path="/print-report" component={PrintReport} />
           <Route path="/teacher-portal" component={TeacherPortal} />
           <Route path="/teacher-report" component={TeacherReport} />

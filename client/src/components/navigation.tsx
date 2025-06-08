@@ -16,7 +16,8 @@ import {
   Settings,
   Building2,
   Wifi,
-  WifiOff
+  WifiOff,
+  Calendar
 } from "lucide-react";
 
 interface NavigationItem {
@@ -38,6 +39,7 @@ const getNavigationItems = (userRole: string): NavigationItem[] => {
       { href: "/teachers", label: "Teacher Profiles", icon: Users },
       { href: "/manage-teachers", label: "Manage Teachers", icon: UserPlus },
       { href: "/manage-departments", label: "Manage Departments", icon: Building2 },
+      { href: "/holidays", label: "Holidays", icon: Calendar },
       { href: "/teacher-login", label: "Teacher Portal", icon: GraduationCap },
     ];
   }

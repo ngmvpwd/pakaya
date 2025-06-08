@@ -408,6 +408,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Holiday routes
+  app.get("/api/holidays", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (startDate && endDate) {
+        const holidays = await storage.getHolidaysInRange(startDate as string, endDate as string);
+        res.json(holidays);
+      } else {
+        const holidays = await storage.getAllHolidays();
+        res.json(holidays);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch holidays" });
+    }
+  });
+
+  app.get("/api/holidays/:date", async (req, res) => {
+    try {
+      const date = req.params.date;
+      const holiday = await storage.getHolidayByDate(date);
+      res.json(holiday || null);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch holiday" });
+    }
+  });
+
+  app.get("/api/holidays/:date/check", async (req, res) => {
+    try {
+      const date = req.params.date;
+      const isHoliday = await storage.isHoliday(date);
+      res.json({ isHoliday });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check holiday" });
+    }
+  });
+
+  app.post("/api/holidays", async (req, res) => {
+    try {
+      const holidayData = insertHolidaySchema.parse(req.body);
+      const holiday = await storage.createHoliday(holidayData);
+      
+      // Broadcast holiday update to all connected clients
+      broadcastUpdate('holiday_created', holiday);
+      
+      res.json(holiday);
+    } catch (error: any) {
+      console.error('Holiday creation error:', error);
+      res.status(400).json({ message: "Invalid holiday data", error: error.message });
+    }
+  });
+
+  app.put("/api/holidays/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const holidayData = req.body;
+      const updated = await storage.updateHoliday(id, holidayData);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Holiday not found" });
+      }
+      
+      // Broadcast holiday update to all connected clients
+      broadcastUpdate('holiday_updated', updated);
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Holiday update error:', error);
+      res.status(400).json({ message: "Invalid holiday data", error: error.message });
+    }
+  });
+
+  app.delete("/api/holidays/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteHoliday(id);
+      
+      // Broadcast holiday deletion to all connected clients
+      broadcastUpdate('holiday_deleted', { id });
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete holiday" });
+    }
+  });
+
   // New endpoint for attendance data (without PDF generation)
   app.get("/api/export/attendance-data", async (req, res) => {
     try {
