@@ -38,6 +38,7 @@ const getNavigationItems = (userRole: string): NavigationItem[] => {
       { href: "/teachers", label: "Teacher Profiles", icon: Users },
       { href: "/manage-teachers", label: "Manage Teachers", icon: UserPlus },
       { href: "/manage-departments", label: "Manage Departments", icon: Building2 },
+      { href: "/teacher-login", label: "Teacher Portal", icon: GraduationCap },
     ];
   }
 

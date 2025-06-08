@@ -262,7 +262,12 @@ export function TeacherReport() {
             </table>
             {attendanceData.length > 50 && (
               <p className="text-sm text-gray-600 mt-2">
-                <em>Showing recent 50 records. Total records: {attendanceData.length}</em>
+                <em>Showing most recent 50 records out of {attendanceData.length} total records</em>
+              </p>
+            )}
+            {attendanceData.length > 0 && (
+              <p className="text-sm text-gray-600 mt-1">
+                <em>Records sorted by date (most recent first)</em>
               </p>
             )}
           </div>
