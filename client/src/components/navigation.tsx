@@ -179,8 +179,13 @@ export function Navigation({ isConnected = false }: NavigationProps) {
                       );
                     })}
                     
-                    {/* Mobile Logout */}
+                    {/* Mobile Backup Button */}
                     <div className="pt-4 mt-4 border-t border-border">
+                      <div className="mb-3">
+                        <BackupButton />
+                      </div>
+                      
+                      {/* Mobile Logout */}
                       <Button
                         variant="outline"
                         className="w-full justify-start text-base py-3 h-12 text-destructive border-destructive/20 hover:bg-destructive/10"
