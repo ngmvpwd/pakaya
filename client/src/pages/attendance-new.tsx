@@ -374,7 +374,14 @@ export default function Attendance() {
                   {isHoliday ? 'Holiday Already Set' : 'Mark as Holiday'}
                 </Button>
                 
-                <HolidayListDialog />
+                <Button 
+                  variant="outline"
+                  onClick={() => setHolidayListDialogOpen(true)}
+                  className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Manage All Holidays
+                </Button>
               </div>
               
               {isHoliday && holidayDetails && (
@@ -681,6 +688,60 @@ export default function Attendance() {
                 {createHolidayMutation.isPending ? 'Creating...' : 'Create Holiday'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Holiday List Management Dialog */}
+      <Dialog open={holidayListDialogOpen} onOpenChange={setHolidayListDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Manage All Holidays</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto max-h-[60vh]">
+            {allHolidays.length > 0 ? (
+              <div className="space-y-3">
+                {allHolidays
+                  .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((holiday: any) => (
+                  <div key={holiday.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{holiday.name}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {holiday.type?.replace('_', ' ') || 'holiday'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {format(new Date(holiday.date), 'EEEE, MMMM d, yyyy')}
+                      </p>
+                      {holiday.description && (
+                        <p className="text-xs text-gray-500 mt-1">{holiday.description}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteHolidayMutation.mutate(holiday.id)}
+                      disabled={deleteHolidayMutation.isPending}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      {deleteHolidayMutation.isPending ? 'Removing...' : 'Remove'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No holidays configured</p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end pt-4 border-t">
+            <Button variant="outline" onClick={() => setHolidayListDialogOpen(false)}>
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
