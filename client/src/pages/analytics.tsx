@@ -100,12 +100,15 @@ export default function Analytics() {
   });
 
   const { data: absentAnalytics } = useQuery({
-    queryKey: ['/api/analytics/absent', customDateRange, startDate, endDate],
+    queryKey: ['/api/analytics/absent', customDateRange, startDate, endDate, dateRange],
     queryFn: () => {
       if (customDateRange && startDate && endDate) {
         return fetch(`/api/analytics/absent?startDate=${startDate}&endDate=${endDate}`).then(res => res.json());
       }
-      return fetch('/api/analytics/absent').then(res => res.json());
+      // For default ranges, calculate start date from dateRange
+      const endDateForQuery = formatDate(new Date(), 'yyyy-MM-dd');
+      const startDateForQuery = formatDate(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
+      return fetch(`/api/analytics/absent?startDate=${startDateForQuery}&endDate=${endDateForQuery}`).then(res => res.json());
     },
     enabled: !customDateRange || (customDateRange && !!startDate && !!endDate),
   });

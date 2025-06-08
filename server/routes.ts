@@ -1020,6 +1020,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Teacher portal top performers
+  app.get("/api/teacher-portal/top-performers", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topPerformers = await storage.getTopPerformingTeachers(limit);
+      res.json(topPerformers);
+    } catch (error) {
+      console.error('Teacher portal top performers error:', error);
+      res.status(500).json({ message: "Failed to fetch top performers" });
+    }
+  });
+
   // Teacher portal routes
   app.get("/api/teacher/info/:teacherId", async (req, res) => {
     try {

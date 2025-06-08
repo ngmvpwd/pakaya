@@ -118,6 +118,15 @@ export function TeacherPortal() {
     enabled: !!teacherData?.id,
   });
 
+  const { data: topPerformers = [] } = useQuery({
+    queryKey: ['/api/teacher-portal/top-performers'],
+    queryFn: async () => {
+      const response = await fetch('/api/teacher-portal/top-performers?limit=5');
+      if (!response.ok) throw new Error('Failed to fetch top performers');
+      return response.json();
+    },
+  });
+
   const handleLogout = () => {
     setIsLoggedIn(false);
     setTeacherData(null);
@@ -423,6 +432,70 @@ export function TeacherPortal() {
             </Card>
           </div>
         )}
+
+        {/* Top Performing Teachers */}
+        <Card className="bg-white shadow-lg border-0 rounded-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-emerald-500 to-green-500 text-white">
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5" />
+              <span className="text-lg">Top Performing Teachers</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {topPerformers && topPerformers.length > 0 ? (
+              <div className="space-y-3">
+                {topPerformers.map((performer: any, index: number) => (
+                  <div 
+                    key={performer.teacher.id} 
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 hover:shadow-md ${
+                      performer.teacher.id === teacherData?.id 
+                        ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300' 
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                        index === 1 ? 'bg-gray-100 text-gray-800' :
+                        index === 2 ? 'bg-orange-100 text-orange-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className={`font-semibold ${
+                          performer.teacher.id === teacherData?.id ? 'text-blue-900' : 'text-gray-800'
+                        }`}>
+                          {performer.teacher.name}
+                          {performer.teacher.id === teacherData?.id && (
+                            <span className="ml-2 text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">You</span>
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-600">{performer.teacher.department}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-xl font-bold ${
+                        performer.attendanceRate >= 95 ? 'text-green-600' :
+                        performer.attendanceRate >= 90 ? 'text-blue-600' :
+                        performer.attendanceRate >= 85 ? 'text-yellow-600' :
+                        'text-orange-600'
+                      }`}>
+                        {performer.attendanceRate.toFixed(1)}%
+                      </p>
+                      <p className="text-xs text-gray-500">Attendance Rate</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No performance data available</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Attendance Records */}
         <Card className="bg-white shadow-lg border-0 rounded-xl overflow-hidden">
