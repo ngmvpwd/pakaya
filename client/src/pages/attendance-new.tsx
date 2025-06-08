@@ -39,6 +39,10 @@ export default function Attendance() {
   const [selectedTeacher, setSelectedTeacher] = useState<number | null>(null);
   const [selectedAbsentCategory, setSelectedAbsentCategory] = useState<'official_leave' | 'irregular_leave' | 'sick_leave'>('official_leave');
   const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
+  const [holidayListDialogOpen, setHolidayListDialogOpen] = useState(false);
+  const [holidayName, setHolidayName] = useState('');
+  const [holidayDescription, setHolidayDescription] = useState('');
+  const [holidayType, setHolidayType] = useState('national');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getAuthState().user;
@@ -75,6 +79,15 @@ export default function Attendance() {
 
   const isHoliday = holidayCheck?.isHoliday || false;
 
+  // Fetch all holidays for management
+  const { data: allHolidays = [] } = useQuery({
+    queryKey: ['/api/holidays'],
+    queryFn: async () => {
+      const response = await fetch('/api/holidays');
+      return response.json();
+    },
+  });
+
   // Mutation to create a holiday
   const createHolidayMutation = useMutation({
     mutationFn: async (data: { name: string; description?: string; type: string }) => {
@@ -85,9 +98,12 @@ export default function Attendance() {
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/holidays'] });
       queryClient.invalidateQueries({ queryKey: ['/api/holidays', selectedDate, 'check'] });
       queryClient.invalidateQueries({ queryKey: ['/api/holidays', selectedDate] });
       setHolidayDialogOpen(false);
+      setHolidayName('');
+      setHolidayDescription('');
       toast({
         title: "Success",
         description: "Holiday created successfully",
@@ -97,6 +113,29 @@ export default function Attendance() {
       toast({
         title: "Error",
         description: error.message || "Failed to create holiday",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to delete a holiday
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (holidayId: number) => {
+      return apiRequest('DELETE', `/api/holidays/${holidayId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/holidays'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/holidays', selectedDate, 'check'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/holidays', selectedDate] });
+      toast({
+        title: "Success",
+        description: "Holiday removed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove holiday",
         variant: "destructive",
       });
     },
@@ -314,6 +353,56 @@ export default function Attendance() {
           </CardContent>
         </Card>
       )}
+
+        {/* Holiday Management Section */}
+        {user?.role === 'admin' && (
+          <Card className="shadow-elegant border-blue-200 dark:border-blue-800">
+            <CardHeader className="bg-blue-50 dark:bg-blue-950">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Holiday Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button 
+                  onClick={() => setHolidayDialogOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isHoliday}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {isHoliday ? 'Holiday Already Set' : 'Mark as Holiday'}
+                </Button>
+                
+                <HolidayListDialog />
+              </div>
+              
+              {isHoliday && holidayDetails && (
+                <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-orange-900 dark:text-orange-100">
+                        Current Holiday: {holidayDetails.name}
+                      </h4>
+                      <p className="text-sm text-orange-700 dark:text-orange-300">
+                        {holidayDetails.description}
+                      </p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => deleteHolidayMutation.mutate(holidayDetails.id)}
+                      disabled={deleteHolidayMutation.isPending}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      Remove Holiday
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Date Selection & Filters */}
         <Card className="shadow-elegant">

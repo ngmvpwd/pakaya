@@ -131,6 +131,8 @@ export default function Analytics() {
       const endDateForExport = customDateRange ? endDate : formatDate(new Date(), 'yyyy-MM-dd');
       const startDateForExport = customDateRange ? startDate : formatDate(subDays(new Date(), parseInt(dateRange)), 'yyyy-MM-dd');
       
+      console.log('Exporting with date range:', { startDate: startDateForExport, endDate: endDateForExport });
+      
       await exportAttendanceData({
         format: exportFormat,
         startDate: startDateForExport,
@@ -139,9 +141,10 @@ export default function Analytics() {
       
       toast({
         title: "Success",
-        description: `Report exported as ${exportFormat.toUpperCase()} successfully`,
+        description: `Report exported as ${exportFormat.toUpperCase()} successfully for ${customDateRange ? 'selected date range' : `last ${dateRange} days`}`,
       });
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         title: "Error",
         description: `Failed to export ${exportFormat.toUpperCase()} report`,
