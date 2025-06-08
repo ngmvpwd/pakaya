@@ -44,7 +44,11 @@ const getNavigationItems = (userRole: string): NavigationItem[] => {
     ];
   }
 
-  return baseItems;
+  // Add holidays for data entry users too
+  return [
+    ...baseItems,
+    { href: "/holidays", label: "Holidays", icon: Calendar },
+  ];
 };
 
 interface NavigationProps {

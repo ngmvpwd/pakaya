@@ -19,7 +19,7 @@ export async function seedDatabase() {
   if (existingUsers.length === 0) {
     // Insert default users only if they don't exist
     await db.insert(users).values([
-      { username: 'admin', password: 'admin123', role: 'admin', name: 'Admin User' },
+      { username: 'ngmvatd', password: 'ngmvatdpwd123', role: 'admin', name: 'Admin User' },
       { username: 'dataentry', password: 'data123', role: 'dataentry', name: 'Data Entry User' }
     ]);
     console.log("Default users created");

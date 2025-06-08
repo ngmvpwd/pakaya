@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
+import { GraduationCap } from "lucide-react";
 
 interface TeacherLoginProps {
   onLogin: (teacherData: any) => void;
@@ -98,15 +97,6 @@ export function TeacherLogin({ onLogin }: TeacherLoginProps) {
           >
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
-          
-          <div className="pt-4 border-t">
-            <Link href="/">
-              <Button variant="ghost" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Admin Portal
-              </Button>
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

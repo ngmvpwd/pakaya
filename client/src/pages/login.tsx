@@ -118,22 +118,6 @@ export default function Login() {
                 </Button>
               </form>
             </Form>
-            
-            <Card className="mt-8 shadow-sm">
-              <CardContent className="p-4 bg-muted/50">
-                <h3 className="font-medium text-foreground mb-3">Demo Credentials:</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center p-2 rounded-md bg-background/50">
-                    <span className="font-medium">Admin:</span>
-                    <span className="text-muted-foreground">admin / admin123</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-md bg-background/50">
-                    <span className="font-medium">Data Entry:</span>
-                    <span className="text-muted-foreground">dataentry / data123</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </CardContent>
         </Card>
       </div>
