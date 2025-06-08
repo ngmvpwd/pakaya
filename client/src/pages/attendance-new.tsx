@@ -437,57 +437,63 @@ export default function Attendance() {
                       </div>
                       
                       {/* Action Buttons */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950"
-                          onClick={() => updateAttendanceMutation.mutate({ 
-                            teacherId: teacher.id, 
-                            status: 'present' 
-                          })}
-                          disabled={updateAttendanceMutation.isPending}
-                        >
-                          <Check className="h-4 w-4 mr-2" />
-                          Present
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950"
-                          onClick={() => updateAttendanceMutation.mutate({ 
-                            teacherId: teacher.id, 
-                            status: 'half_day' 
-                          })}
-                          disabled={updateAttendanceMutation.isPending}
-                        >
-                          <Clock className="h-4 w-4 mr-2" />
-                          Half Day
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950"
-                          onClick={() => updateAttendanceMutation.mutate({ 
-                            teacherId: teacher.id, 
-                            status: 'short_leave' 
-                          })}
-                          disabled={updateAttendanceMutation.isPending}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Short Leave
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950"
-                          onClick={() => handleMarkAbsent(teacher.id)}
-                          disabled={updateAttendanceMutation.isPending}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Absent
-                        </Button>
-                      </div>
+                      {isHoliday ? (
+                        <div className="text-sm text-orange-600 dark:text-orange-400 font-medium py-2">
+                          Holiday - No attendance required
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950"
+                            onClick={() => updateAttendanceMutation.mutate({ 
+                              teacherId: teacher.id, 
+                              status: 'present' 
+                            })}
+                            disabled={updateAttendanceMutation.isPending}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Present
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950"
+                            onClick={() => updateAttendanceMutation.mutate({ 
+                              teacherId: teacher.id, 
+                              status: 'half_day' 
+                            })}
+                            disabled={updateAttendanceMutation.isPending}
+                          >
+                            <Clock className="h-4 w-4 mr-2" />
+                            Half Day
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950"
+                            onClick={() => updateAttendanceMutation.mutate({ 
+                              teacherId: teacher.id, 
+                              status: 'short_leave' 
+                            })}
+                            disabled={updateAttendanceMutation.isPending}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Short Leave
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950"
+                            onClick={() => handleMarkAbsent(teacher.id)}
+                            disabled={updateAttendanceMutation.isPending}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Absent
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -300,6 +300,10 @@ export class DatabaseStorage implements IStorage {
     const localStartDate = new Date(startDate.getTime() + (8 * 60 * 60 * 1000)); // GMT+8
     const startDateStr = localStartDate.toISOString().split('T')[0];
 
+    // Get holidays in the date range to exclude from trends
+    const holidaysInRange = await this.getHolidaysInRange(startDateStr, new Date().toISOString().split('T')[0]);
+    const holidayDates = new Set(holidaysInRange.map(h => h.date));
+
     const result = await db
       .select({
         date: attendanceRecords.date,
@@ -314,6 +318,11 @@ export class DatabaseStorage implements IStorage {
     const trendsMap = new Map<string, { present: number; absent: number; halfDay: number; shortLeave: number }>();
     
     result.forEach(row => {
+      // Skip holiday dates from trends
+      if (holidayDates.has(row.date)) {
+        return;
+      }
+      
       if (!trendsMap.has(row.date)) {
         trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
       }
@@ -339,6 +348,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAttendanceTrendsCustomRange(startDate: string, endDate: string): Promise<Array<{ date: string; present: number; absent: number; halfDay: number; shortLeave: number }>> {
+    // Get holidays in the date range to exclude from trends
+    const holidaysInRange = await this.getHolidaysInRange(startDate, endDate);
+    const holidayDates = new Set(holidaysInRange.map(h => h.date));
+
     const result = await db
       .select({
         date: attendanceRecords.date,
@@ -356,6 +369,11 @@ export class DatabaseStorage implements IStorage {
     const trendsMap = new Map<string, { present: number; absent: number; halfDay: number; shortLeave: number }>();
     
     result.forEach(row => {
+      // Skip holiday dates from trends
+      if (holidayDates.has(row.date)) {
+        return;
+      }
+      
       if (!trendsMap.has(row.date)) {
         trendsMap.set(row.date, { present: 0, absent: 0, halfDay: 0, shortLeave: 0 });
       }
