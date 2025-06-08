@@ -12,8 +12,24 @@ import {
   UserX, 
   LogOut,
   FileText,
-  Download
+  Download,
+  BarChart3,
+  TrendingUp
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar
+} from "recharts";
 import { TeacherLogin } from "./teacher-login";
 
 interface TeacherPortalAuth {
@@ -77,6 +93,26 @@ export function TeacherPortal() {
     queryFn: async () => {
       const response = await fetch(`/api/teacher-portal/stats/${teacherData?.id}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    },
+    enabled: !!teacherData?.id,
+  });
+
+  const { data: absenceTotals } = useQuery({
+    queryKey: ['/api/analytics/teacher', teacherData?.id, 'absence-totals'],
+    queryFn: async () => {
+      const response = await fetch(`/api/analytics/teacher/${teacherData?.id}/absence-totals`);
+      if (!response.ok) throw new Error('Failed to fetch absence totals');
+      return response.json();
+    },
+    enabled: !!teacherData?.id,
+  });
+
+  const { data: attendancePattern } = useQuery({
+    queryKey: ['/api/stats/teacher', teacherData?.id, 'pattern'],
+    queryFn: async () => {
+      const response = await fetch(`/api/stats/teacher/${teacherData?.id}/pattern?weeks=12`);
+      if (!response.ok) throw new Error('Failed to fetch attendance pattern');
       return response.json();
     },
     enabled: !!teacherData?.id,
@@ -226,6 +262,133 @@ export function TeacherPortal() {
                     <p className="text-2xl font-bold">{attendanceRate}%</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Absence Breakdown and Charts */}
+        {absenceTotals && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Absence Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="w-5 h-5" />
+                  <span>Absence Breakdown</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <XCircle className="w-4 h-4 text-red-500" />
+                      <span className="font-medium">Total Absences</span>
+                    </div>
+                    <span className="text-xl font-bold text-red-600">{absenceTotals.totalAbsences}</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                      <span className="text-sm">Official Leave</span>
+                      <span className="font-medium text-blue-600">{absenceTotals.officialLeave}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                      <span className="text-sm">Private Leave</span>
+                      <span className="font-medium text-orange-600">{absenceTotals.privateLeave}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
+                      <span className="text-sm">Sick Leave</span>
+                      <span className="font-medium text-purple-600">{absenceTotals.sickLeave}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
+                      <span className="text-sm">Short Leave</span>
+                      <span className="font-medium text-yellow-600">{absenceTotals.shortLeave}</span>
+                    </div>
+                  </div>
+
+                  {/* Absence Pie Chart */}
+                  {(absenceTotals.officialLeave + absenceTotals.privateLeave + absenceTotals.sickLeave + absenceTotals.shortLeave) > 0 && (
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Official Leave', value: absenceTotals.officialLeave, color: '#3B82F6' },
+                              { name: 'Private Leave', value: absenceTotals.privateLeave, color: '#F97316' },
+                              { name: 'Sick Leave', value: absenceTotals.sickLeave, color: '#8B5CF6' },
+                              { name: 'Short Leave', value: absenceTotals.shortLeave, color: '#EAB308' }
+                            ].filter(item => item.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            dataKey="value"
+                            label={({ name, value }) => `${name}: ${value}`}
+                          >
+                            {[
+                              { name: 'Official Leave', value: absenceTotals.officialLeave, color: '#3B82F6' },
+                              { name: 'Private Leave', value: absenceTotals.privateLeave, color: '#F97316' },
+                              { name: 'Sick Leave', value: absenceTotals.sickLeave, color: '#8B5CF6' },
+                              { name: 'Short Leave', value: absenceTotals.shortLeave, color: '#EAB308' }
+                            ].filter(item => item.value > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Attendance Trend Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="w-5 h-5" />
+                  <span>Attendance Trend</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {attendancePattern && attendancePattern.length > 0 ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={attendancePattern}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="week" 
+                          tick={{ fontSize: 12 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis 
+                          domain={[0, 100]}
+                          tick={{ fontSize: 12 }}
+                          label={{ value: 'Attendance %', angle: -90, position: 'insideLeft' }}
+                        />
+                        <Tooltip 
+                          formatter={(value) => [`${value}%`, 'Attendance Rate']}
+                          labelFormatter={(label) => `Week of ${label}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="rate" 
+                          stroke="#3B82F6" 
+                          strokeWidth={2}
+                          dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-muted-foreground">
+                    <p>No attendance pattern data available</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
