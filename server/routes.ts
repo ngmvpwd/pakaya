@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertAttendanceSchema, insertTeacherSchema, insertDepartmentSchema, insertHolidaySchema } from "@shared/schema";
+import { db } from "./db";
+import * as schema from "@shared/schema";
 import { z } from "zod";
 import puppeteer from "puppeteer";
 
@@ -1104,6 +1106,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to generate teacher report",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Database backup endpoint
+  app.get("/api/backup/database", async (req, res) => {
+    try {
+      // Get all data using storage methods
+      const usersData = await db.select().from(schema.users);
+      const departmentsData = await storage.getAllDepartments();
+      const teachersData = await storage.getAllTeachers();
+      const attendanceData = await db.select().from(schema.attendanceRecords);
+      const alertsData = await storage.getAlerts(9999);
+      const holidaysData = await storage.getAllHolidays();
+
+      // Remove passwords from user data for security
+      const sanitizedUsers = usersData.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name
+      }));
+
+      const backupData = {
+        timestamp: new Date().toISOString(),
+        version: "1.0",
+        tables: {
+          users: sanitizedUsers,
+          departments: departmentsData,
+          teachers: teachersData,
+          attendanceRecords: attendanceData,
+          alerts: alertsData,
+          holidays: holidaysData
+        },
+        metadata: {
+          totalUsers: usersData.length,
+          totalDepartments: departmentsData.length,
+          totalTeachers: teachersData.length,
+          totalAttendanceRecords: attendanceData.length,
+          totalAlerts: alertsData.length,
+          totalHolidays: holidaysData.length,
+          backupDate: new Date().toLocaleDateString(),
+          backupTime: new Date().toLocaleTimeString()
+        }
+      };
+
+      const fileName = `attendance_backup_${new Date().toISOString().split('T')[0]}_${new Date().toTimeString().slice(0,8).replace(/:/g, '-')}.json`;
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.json(backupData);
+    } catch (error) {
+      console.error('Database backup error:', error);
+      res.status(500).json({ message: "Failed to create database backup" });
     }
   });
 
